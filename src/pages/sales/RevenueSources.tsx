@@ -13,6 +13,7 @@ import {
   useAccountsRevenue,
 } from "../../shared/hooks/useLiveQueries";
 import { toNaira } from "../../shared/money";
+import { LiveChartGrid, LiveDonutChart, LiveMetricBars } from "../../components/LiveCharts";
 import {
   ArrowLeft,
   PieChart,
@@ -199,25 +200,17 @@ export default function RevenueSources() {
   const allEntries =
     mappedLiveAudits.length > 0 ? mappedLiveAudits : mockRevenueEntries;
 
-  // Filter entries by time range, source type, and search query
+  const getSourceGroup = (sourceType: string) =>
+    sourceType === "internal_campaign" ? "internal" : "external";
+
+  // Filter entries by time range, the two commercial origin groups, and search.
   const filteredEntries = allEntries.filter((item: any) => {
     // 1. Time range filter
     if (!filterByTime(item.date)) return false;
 
     // 2. Source Type filter
-    if (sourceTypeFilter !== "all") {
-      if (
-        sourceTypeFilter === "internal" &&
-        item.sourceType !== "internal_campaign"
-      )
-        return false;
-      if (sourceTypeFilter === "external" && item.sourceType !== "external")
-        return false;
-      if (sourceTypeFilter === "referral" && item.sourceType !== "referral")
-        return false;
-      if (sourceTypeFilter === "organic" && item.sourceType !== "organic")
-        return false;
-    }
+    if (sourceTypeFilter !== "all" && getSourceGroup(item.sourceType) !== sourceTypeFilter)
+      return false;
 
     // 3. Search query filter
     if (searchQuery.trim()) {
@@ -241,52 +234,30 @@ export default function RevenueSources() {
   );
 
   const internalRevenue = filteredEntries
-    .filter((i: any) => i.sourceType === "internal_campaign")
+    .filter((i: any) => getSourceGroup(i.sourceType) === "internal")
     .reduce((sum: number, item: any) => sum + toNaira(item.amountKobo), 0);
 
   const externalRevenue = filteredEntries
-    .filter((i: any) => i.sourceType === "external")
+    .filter((i: any) => getSourceGroup(i.sourceType) === "external")
     .reduce((sum: number, item: any) => sum + toNaira(item.amountKobo), 0);
 
-  const referralRevenue = filteredEntries
-    .filter((i: any) => i.sourceType === "referral")
-    .reduce((sum: number, item: any) => sum + toNaira(item.amountKobo), 0);
-
-  const organicRevenue = filteredEntries
-    .filter((i: any) => i.sourceType === "organic")
-    .reduce((sum: number, item: any) => sum + toNaira(item.amountKobo), 0);
+  const revenueByNamedSource = Object.values(
+    filteredEntries.reduce((groups: Record<string, { label: string; value: number }>, item: any) => {
+      const label = item.sourceName || "Unattributed source";
+      groups[label] ||= { label, value: 0 };
+      groups[label].value += toNaira(item.amountKobo);
+      return groups;
+    }, {}),
+  ).sort((a, b) => b.value - a.value);
 
   const formatSourceBadge = (sourceType: string) => {
-    switch (sourceType) {
-      case "internal_campaign":
-        return (
-          <span className="bg-brand-teal/10 text-brand-teal border border-brand-teal/20 px-2 py-0.5 rounded font-extrabold text-[9px] uppercase tracking-wider inline-flex items-center gap-1">
-            <Globe className="w-3 h-3 text-brand-teal" />
-            Internal Campaign
-          </span>
-        );
-      case "external":
-        return (
-          <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded font-extrabold text-[9px] uppercase tracking-wider inline-flex items-center gap-1">
-            <Building className="w-3 h-3 text-indigo-600" />
-            External Partner
-          </span>
-        );
-      case "referral":
-        return (
-          <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded font-extrabold text-[9px] uppercase tracking-wider inline-flex items-center gap-1">
-            <Share2 className="w-3 h-3 text-amber-600" />
-            Broker / Referral
-          </span>
-        );
-      default:
-        return (
-          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-extrabold text-[9px] uppercase tracking-wider inline-flex items-center gap-1">
-            <ShieldCheck className="w-3 h-3 text-emerald-600" />
-            Organic Direct
-          </span>
-        );
-    }
+    const isInternal = getSourceGroup(sourceType) === "internal";
+    return (
+      <span className={`${isInternal ? "bg-brand-teal/10 text-brand-teal border-brand-teal/20" : "bg-indigo-50 text-indigo-700 border-indigo-200"} inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider`}>
+        {isInternal ? <Globe className="h-3 w-3" /> : <Building className="h-3 w-3" />}
+        {isInternal ? "Internal Campaign" : "External Source"}
+      </span>
+    );
   };
 
   return (
@@ -316,7 +287,7 @@ export default function RevenueSources() {
       </div>
 
       {/* Top Level KPI Summaries */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         <div className="bg-white border border-border-warm border-l-4 border-l-brand-teal p-5 rounded-xl shadow-sm space-y-1">
           <p className="text-[10px] font-bold text-muted-gray uppercase tracking-wider">
             Total Filtered Revenue
@@ -353,18 +324,31 @@ export default function RevenueSources() {
           </p>
         </div>
 
-        <div className="bg-white border border-border-warm border-l-4 border-l-amber-500 p-5 rounded-xl shadow-sm space-y-1">
-          <p className="text-[10px] font-bold text-muted-gray uppercase tracking-wider">
-            Referrals & Organic Revenue
-          </p>
-          <p className="text-2xl font-extrabold text-amber-900">
-            ₦{(referralRevenue + organicRevenue).toLocaleString()}
-          </p>
-          <p className="text-[10px] text-amber-700 font-semibold pt-1">
-            Agent referrals & direct web leads
-          </p>
-        </div>
       </div>
+
+      <LiveChartGrid>
+        <LiveDonutChart
+          eyebrow="Revenue composition"
+          title="Internal versus external revenue"
+          description="Compare company-generated campaign revenue with partner, referral and direct external sources."
+          centerLabel="Attributed value"
+          loading={isAuditsLoading}
+          data={[
+            { label: "Internal sources", value: internalRevenue, displayValue: `₦${internalRevenue.toLocaleString()}`, color: "#0b909c" },
+            { label: "External sources", value: externalRevenue, displayValue: `₦${externalRevenue.toLocaleString()}`, color: "#ff7758" },
+          ]}
+        />
+        <LiveMetricBars
+          eyebrow="Source performance"
+          title="Revenue by named source"
+          description="Identify which campaigns, brokers and commercial channels generate the most recorded revenue."
+          loading={isAuditsLoading}
+          data={revenueByNamedSource.slice(0, 6).map((source) => ({
+            ...source,
+            displayValue: `₦${source.value.toLocaleString()}`,
+          }))}
+        />
+      </LiveChartGrid>
 
       {/* Main Content Area: Filters + Revenue Table */}
       <div className="bg-white border border-border-warm rounded-xl shadow-sm overflow-hidden space-y-4">
@@ -399,9 +383,7 @@ export default function RevenueSources() {
                 options={[
                   { value: "all", label: "All Source Types" },
                   { value: "internal", label: "Internal Campaign" },
-                  { value: "external", label: "External Partner" },
-                  { value: "referral", label: "Broker Referral" },
-                  { value: "organic", label: "Organic Direct" },
+                  { value: "external", label: "External Sources" },
                 ]}
                 value={sourceTypeFilter}
                 onChange={(val) => setSourceTypeFilter(val)}

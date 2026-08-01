@@ -12,7 +12,6 @@ import { toNaira } from "../../shared/money";
 import Button from "../../components/Button";
 import KpiCard from "../../components/KpiCard";
 import MdBriefPanel from "../../components/MdBriefPanel";
-import TimeRangePicker from "../../components/TimeRangePicker";
 import type { TimeRangeFilterState } from "../../components/TimeRangePicker";
 import Skeleton from "../../components/Skeleton";
 import PageHeader from "../../components/PageHeader";
@@ -54,7 +53,7 @@ export default function Dashboard() {
   const approvals = mockStore.approvals;
   const activities = mockStore.activities;
 
-  const [timeRange, setTimeRange] = useState<TimeRangeFilterState>({
+  const [timeRange] = useState<TimeRangeFilterState>({
     range: "all",
   });
 
@@ -547,13 +546,11 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-page property-page space-y-6 pb-10 select-none">
+      {/* Dashboard time filter hidden until its KPI and activity endpoints support it. */}
       <PageHeader
         section="Dashboard"
         title={dashboardTitle()}
         description="A current view of clients, collections, documentation and property delivery."
-        actions={
-          <TimeRangePicker onChange={(rangeState) => setTimeRange(rangeState)} />
-        }
       />
 
       <div className="dashboard-summary-grid">

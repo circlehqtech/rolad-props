@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { useMockStore, type Client } from "../../store/mockStore";
-import TimeRangePicker from "../../components/TimeRangePicker";
 import type { TimeRangeFilterState } from "../../components/TimeRangePicker";
 import { toast } from "../../utils/toast";
 import {
@@ -53,7 +52,7 @@ export default function MarketingDashboard() {
     logActivity,
   } = useMockStore();
 
-  const [timeRange, setTimeRange] = useState<TimeRangeFilterState>({
+  const [timeRange] = useState<TimeRangeFilterState>({
     range: "all",
   });
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
@@ -320,9 +319,7 @@ export default function MarketingDashboard() {
           >
             Lead Summary
           </Button>
-          <TimeRangePicker
-            onChange={(rangeState) => setTimeRange(rangeState)}
-          />
+          {/* Time range hidden until the marketing endpoints accept range parameters. */}
         </div>}
       />
 

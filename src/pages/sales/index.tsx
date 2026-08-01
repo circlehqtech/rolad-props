@@ -4,7 +4,6 @@ import { useAuthStore } from "../../store/authStore";
 import { useMockStore, type CommissionItem } from "../../store/mockStore";
 import Button from "../../components/Button";
 import Skeleton from "../../components/Skeleton";
-import TimeRangePicker from "../../components/TimeRangePicker";
 import type { TimeRangeFilterState } from "../../components/TimeRangePicker";
 import PageHeader from "../../components/PageHeader";
 import { LiveChartGrid, LiveDonutChart, LiveMetricBars } from "../../components/LiveCharts";
@@ -39,7 +38,7 @@ export default function SalesDashboard() {
   const { clients, commissions, actionCommission, logActivity } =
     useMockStore();
 
-  const [timeRange, setTimeRange] = useState<TimeRangeFilterState>({
+  const [timeRange] = useState<TimeRangeFilterState>({
     range: "all",
   });
   const [selectedSource, setSelectedSource] = useState<
@@ -210,7 +209,7 @@ export default function SalesDashboard() {
           >
             View Revenue Sources
           </Button>
-          <TimeRangePicker onChange={(rangeState) => setTimeRange(rangeState)} />
+          {/* Time range hidden until the sales KPI endpoints accept range parameters. */}
         </div>}
       />
 

@@ -430,6 +430,62 @@ export default function MdBriefPanel({
             </span>
           </div>
 
+          <div className="rounded-xl border border-brand-teal/15 bg-brand-teal/5 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <label className="block flex-1">
+                <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.1em] text-brand-teal">
+                  Briefing period
+                </span>
+                <Select
+                  options={rangeOptions}
+                  value={briefRange}
+                  onChange={(value) => setBriefRange(value as TimeRangeValue)}
+                  className="w-full"
+                  ariaLabel="Filter portfolio brief by time range"
+                />
+              </label>
+              <p className="text-[10px] font-semibold text-slate-500 sm:pb-2">
+                Showing: <span className="text-slate-800">{getDisplayRangeText()}</span>
+              </p>
+            </div>
+
+            {briefRange === "custom" && (
+              <div className="mt-4 grid grid-cols-1 gap-3 border-t border-brand-teal/10 pt-4 sm:grid-cols-2">
+                <label className="text-[10px] font-bold text-slate-600">
+                  <span className="mb-1.5 block">From date</span>
+                  <input
+                    type="date"
+                    value={customStart}
+                    onChange={(event) => setCustomStart(event.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/10"
+                  />
+                </label>
+                <label className="text-[10px] font-bold text-slate-600">
+                  <span className="mb-1.5 block">To date</span>
+                  <input
+                    type="date"
+                    value={customEnd}
+                    min={customStart || undefined}
+                    onChange={(event) => setCustomEnd(event.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/10"
+                  />
+                </label>
+              </div>
+            )}
+
+            {briefRange === "specific-date" && (
+              <label className="mt-4 block border-t border-brand-teal/10 pt-4 text-[10px] font-bold text-slate-600">
+                <span className="mb-1.5 block">Briefing date</span>
+                <input
+                  type="date"
+                  value={specificDate}
+                  onChange={(event) => setSpecificDate(event.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/10"
+                />
+              </label>
+            )}
+          </div>
+
           {/* Brief Contents */}
           <div className="space-y-6 text-xs text-charcoal leading-relaxed font-medium">
             {isBriefingLoading ? (

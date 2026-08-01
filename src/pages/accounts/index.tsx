@@ -10,7 +10,6 @@ import {
 import Button from "../../components/Button";
 import Select from "../../components/Select";
 import KpiCard from "../../components/KpiCard";
-import TimeRangePicker from "../../components/TimeRangePicker";
 import type { TimeRangeFilterState } from "../../components/TimeRangePicker";
 import PageHeader from "../../components/PageHeader";
 import { LiveChartGrid, LiveDonutChart, LiveMetricBars } from "../../components/LiveCharts";
@@ -28,6 +27,7 @@ import {
   useLogAccountRevenueMutation,
   useUpdateAccountAuditStatusMutation,
   useMarketingCampaigns,
+  useAccountsRevenue,
 } from "../../shared/hooks/useLiveQueries";
 import { useClientsList } from "../../features/clients/hooks/useClients";
 import { toNaira, toKoboInt } from "../../shared/money";
@@ -52,6 +52,14 @@ import {
   Filter,
 } from "lucide-react";
 
+function getRevenueOrigin(details?: string) {
+  if (!details) return "External";
+  const internalSignals = ["summer", "instagram", "google", "facebook", "search", "promo", "newsletter"];
+  return internalSignals.some((signal) => details.toLowerCase().includes(signal))
+    ? "Internal"
+    : "External";
+}
+
 export default function Accounts() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -74,6 +82,8 @@ export default function Accounts() {
     useAccountsCommissions();
   const { data: roiPayoutsData, isLoading: isRoiLoading } =
     useAccountsRoiPayouts();
+  const { data: revenueSourceData, isLoading: isRevenueSourcesLoading } =
+    useAccountsRevenue({ timeRange: "all_time" });
 
   // Payment Ledger Filter and Sorting States (matching GET /accounts/ledger API)
   const [ledgerPaymentStatus, setLedgerPaymentStatus] = useState<string>("--");
@@ -123,7 +133,7 @@ export default function Accounts() {
     ],
   }));
 
-  const [timeRange, setTimeRange] = useState<TimeRangeFilterState>({
+  const [timeRange] = useState<TimeRangeFilterState>({
     range: "all",
   });
 
@@ -796,43 +806,40 @@ export default function Accounts() {
       );
     });
 
-  // Split Revenue Source: Campaign mapping details (Internal vs External origin)
-  // Internal: Summer Instagram, Google Search
-  // External: Corporate Referral, VGC Billboard
-  const getRevenueOrigin = (details?: string) => {
-    if (!details) return "External";
-    const intKeywords = [
-      "summer",
-      "instagram",
-      "google",
-      "facebook",
-      "search",
-      "promo",
-      "direct",
-    ];
-    const isInternal = intKeywords.some((kw) =>
-      details.toLowerCase().includes(kw),
-    );
-    return isInternal ? "Internal" : "External";
-  };
+  const revenueEntries = (revenueSourceData?.data || []).map((entry: any) => ({
+    id: entry.id,
+    clientId: entry.clientId || entry.relatedClientId,
+    clientName: entry.clientName || entry.clientCode || "General revenue",
+    clientCode: entry.clientCode || "GENERAL",
+    amount: toNaira(String(entry.amountKobo || "0")),
+    sourceType: entry.sourceType || "external",
+    sourceName: entry.sourceName || entry.note || "Direct attribution",
+    responsibleAgent:
+      entry.responsibleAgentName || entry.loggedByName || entry.responsibleAgentId || "Accounts team",
+    paymentMethod: entry.paymentMethod || "Not specified",
+    transactionRef: entry.transactionRef || "Not supplied",
+    status: entry.status || "recorded",
+    createdAt: entry.createdAt,
+  }));
 
-  const internalClients = filteredClients.filter(
-    (c) => getRevenueOrigin(c.campaignDetails) === "Internal",
+  // The accounts summary intentionally exposes two commercial origin groups.
+  // Referral, broker and organic records are grouped under External.
+  const internalClients = revenueEntries.filter(
+    (entry) => entry.sourceType === "internal_campaign",
   );
-  const externalClients = filteredClients.filter(
-    (c) => getRevenueOrigin(c.campaignDetails) === "External",
+  const externalClients = revenueEntries.filter(
+    (entry) => entry.sourceType !== "internal_campaign",
   );
-
-  const internalRevenue = internalClients.reduce((sum, c) => sum + c.paid, 0);
-  const externalRevenue = externalClients.reduce((sum, c) => sum + c.paid, 0);
+  const internalRevenue = internalClients.reduce((sum, entry) => sum + entry.amount, 0);
+  const externalRevenue = externalClients.reduce((sum, entry) => sum + entry.amount, 0);
 
   return (
     <div className="property-page accounts-page space-y-6 pb-10 select-none relative">
+      {/* Time range stays hidden until the accounts summary endpoints accept it. */}
       <PageHeader
         section="Payments & Accounts"
         title="Payments & Accounts"
         description="Track client receipts, outstanding balances, commissions and investment payouts."
-        actions={<TimeRangePicker onChange={(rangeState) => setTimeRange(rangeState)} />}
       />
 
       {/* Prominent Billing Action Buttons Row */}
@@ -981,12 +988,18 @@ export default function Accounts() {
             </div>
           </div>
 
+          {isRevenueSourcesLoading && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-28 w-full" />
+            </div>
+          )}
+
           {/* Deep-dive Referral Client list details */}
           {selectedRevenueSource && (
             <div className="bg-white p-4 border border-border-warm rounded-lg space-y-3 animate-fade-in">
               <span className="text-[10px] font-bold text-muted-gray block uppercase">
-                Referred Clients under {selectedRevenueSource} Origins (Click
-                Name to Profile)
+                Live revenue entries under {selectedRevenueSource} origins
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {(selectedRevenueSource === "Internal"
@@ -995,19 +1008,28 @@ export default function Accounts() {
                 ).map((c) => (
                   <div
                     key={c.id}
-                    onClick={() => navigate(`/clients/${c.id}`)}
-                    className="p-3 border border-border-warm hover:border-brand-teal/40 rounded bg-neutral-50/10 cursor-pointer transition-colors flex justify-between items-center group"
+                    onClick={() => c.clientId && navigate(`/clients/${c.clientId}`)}
+                    className={`p-4 border border-border-warm rounded-lg bg-white transition-colors ${c.clientId ? "cursor-pointer hover:border-brand-teal/40" : ""}`}
                   >
-                    <div>
-                      <p className="font-bold text-charcoal group-hover:text-brand-teal transition-colors">
-                        Client: {c.name}
-                      </p>
-                      <p className="text-[10px] text-brand-teal font-semibold mt-0.5">
-                        Agent / Source:{" "}
-                        {c.campaignDetails || "Direct Attribution"}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-bold text-charcoal">
+                          {c.clientName} <span className="font-medium text-muted-gray">({c.clientCode})</span>
+                        </p>
+                        <p className="mt-1 truncate text-[10px] font-semibold text-brand-teal">
+                          {c.sourceName}
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-sm font-extrabold text-charcoal">
+                        ₦{c.amount.toLocaleString()}
                       </p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-muted-gray group-hover:translate-x-0.5 transition-transform" />
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 pt-3 text-[9px] font-semibold text-slate-500">
+                      <span>Agent: {c.responsibleAgent}</span>
+                      <span>Method: {String(c.paymentMethod).replace(/_/g, " ")}</span>
+                      <span>Ref: {c.transactionRef}</span>
+                      <span className="capitalize">{c.status}</span>
+                    </div>
                   </div>
                 ))}
               </div>
