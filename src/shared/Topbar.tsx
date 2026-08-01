@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { getInitials } from "../utils/getInitials";
 import FlatIcon from "../components/FlatIcon";
 import {
@@ -14,8 +13,6 @@ interface TopbarProps {
 }
 
 const Topbar = ({ toggleSidebar, isMobile }: TopbarProps) => {
-  const navigate = useNavigate();
-  const [globalSearch, setGlobalSearch] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
   const { user } = useAuthStore();
   const displayName = user?.name || "Chuka Rolad";
@@ -29,13 +26,6 @@ const Topbar = ({ toggleSidebar, isMobile }: TopbarProps) => {
   const unreadCount = notificationsList.filter((n: any) => !n.read).length;
   const markReadMutation = useMarkNotificationReadMutation();
 
-  const submitSearch = (event: React.FormEvent) => {
-    event.preventDefault();
-    const query = globalSearch.trim();
-    if (!query) return;
-    navigate(`/clients?q=${encodeURIComponent(query)}`);
-  };
-
   return (
     <header className="app-topbar w-full min-h-[74px] flex items-center justify-between gap-4 px-4 sm:px-6 bg-white shrink-0">
       <div className="flex items-center flex-1">
@@ -48,36 +38,14 @@ const Topbar = ({ toggleSidebar, isMobile }: TopbarProps) => {
           <FlatIcon name={isMobile ? "menu-burger" : "angle-small-left"} className="text-[15px]" />
         </button>
 
-        <form
-          onSubmit={submitSearch}
-          className="topbar-search hidden sm:flex h-11 px-4 items-center gap-2.5 max-w-[360px] w-full"
-        >
-          <FlatIcon name="search" className="text-[14px] text-slate-400" />
-          <input
-            type="text"
-            value={globalSearch}
-            onChange={(event) => setGlobalSearch(event.target.value)}
-            className="flex-1 bg-transparent outline-none text-charcoal py-2 text-xs"
-            placeholder="Search anything"
-            aria-label="Search clients, estates or references"
-          />
-          <button type="submit" aria-label="Search" className="text-brand-teal">
-            <FlatIcon name="arrow-small-right" className="text-[15px]" />
-          </button>
-        </form>
+        {/* Global search hidden until its cross-module search endpoint is available. */}
       </div>
 
       {/* right section */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* bell & history icons */}
         <div className="relative flex items-center gap-1 text-slate-500">
-          <button
-            type="button"
-            aria-label="Calendar"
-            className="topbar-icon hidden sm:grid"
-          >
-            <FlatIcon name="calendar" className="text-[16px]" />
-          </button>
+          {/* Calendar shortcut hidden until calendar navigation is implemented. */}
           <button
             type="button"
             aria-label="Notifications"
