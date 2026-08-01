@@ -7,10 +7,7 @@ import { type Client, type ApprovalItem } from "../store/mockStore";
 import { useDashboardBriefing } from "../shared/hooks/useLiveQueries";
 import { toast } from "../utils/toast";
 import { useAuthStore } from "../store/authStore";
-import {
-  toApiTimeRange,
-  type TimeRangeValue,
-} from "./TimeRangePicker";
+import { toApiTimeRange, type TimeRangeValue } from "./TimeRangePicker";
 
 export function renderMarkdown(text: string | null | undefined) {
   if (text === null) {
@@ -89,8 +86,7 @@ export default function MdBriefPanel({
   const role = user?.role || "MD / CEO";
 
   // Timeframe states for the brief
-  const [briefRange, setBriefRange] =
-    useState<TimeRangeValue>("this-week");
+  const [briefRange, setBriefRange] = useState<TimeRangeValue>("this-week");
   const [customStart, setCustomStart] = useState<string>("");
   const [customEnd, setCustomEnd] = useState<string>("");
   const [specificDate, setSpecificDate] = useState<string>("");
@@ -117,7 +113,9 @@ export default function MdBriefPanel({
           ...(briefRange === "custom" && customStart
             ? { fromDate: customStart }
             : {}),
-          ...(briefRange === "custom" && customEnd ? { toDate: customEnd } : {}),
+          ...(briefRange === "custom" && customEnd
+            ? { toDate: customEnd }
+            : {}),
         };
 
   const { data: serverBriefing, isLoading: isBriefingLoading } =
@@ -137,7 +135,7 @@ export default function MdBriefPanel({
     if (briefRange === "specific-date") {
       return Boolean(
         specificDate &&
-          itemDate.getTime() === new Date(`${specificDate}T00:00:00`).getTime(),
+        itemDate.getTime() === new Date(`${specificDate}T00:00:00`).getTime(),
       );
     }
 
@@ -165,7 +163,11 @@ export default function MdBriefPanel({
     } else if (briefRange === "this-month" || briefRange === "last-month") {
       const monthOffset = briefRange === "last-month" ? -1 : 0;
       start = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
-      end = new Date(today.getFullYear(), today.getMonth() + monthOffset + 1, 0);
+      end = new Date(
+        today.getFullYear(),
+        today.getMonth() + monthOffset + 1,
+        0,
+      );
     } else if (briefRange === "this-year" || briefRange === "last-year") {
       const year = today.getFullYear() - (briefRange === "last-year" ? 1 : 0);
       start = new Date(year, 0, 1);
@@ -261,9 +263,7 @@ export default function MdBriefPanel({
   }
 
   const handleSendBrief = () => {
-    toast.success(
-      "Morning portfolio brief shared with the internal team.",
-    );
+    toast.success("Morning portfolio brief shared with the internal team.");
   };
 
   const formatBriefToHtml = (text: string) => {
@@ -433,7 +433,7 @@ export default function MdBriefPanel({
           <div className="rounded-xl border border-brand-teal/15 bg-brand-teal/5 p-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <label className="block flex-1">
-                <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.1em] text-brand-teal">
+                <span className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-brand-teal">
                   Briefing period
                 </span>
                 <Select
@@ -445,7 +445,8 @@ export default function MdBriefPanel({
                 />
               </label>
               <p className="text-[10px] font-semibold text-slate-500 sm:pb-2">
-                Showing: <span className="text-slate-800">{getDisplayRangeText()}</span>
+                Showing:{" "}
+                <span className="text-slate-800">{getDisplayRangeText()}</span>
               </p>
             </div>
 
@@ -577,7 +578,9 @@ export default function MdBriefPanel({
               <Eye className="h-4.5 w-4.5" />
             </span>
             <span className="flex flex-col">
-              <span className="text-xs font-bold leading-none">View Portfolio Brief</span>
+              <span className="text-xs font-bold leading-none">
+                View Portfolio Brief
+              </span>
               <span className="mt-1.5 text-[9px] font-medium text-white/60">
                 Collections, clients and site delivery
               </span>

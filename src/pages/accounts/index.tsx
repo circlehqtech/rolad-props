@@ -12,7 +12,11 @@ import Select from "../../components/Select";
 import KpiCard from "../../components/KpiCard";
 import type { TimeRangeFilterState } from "../../components/TimeRangePicker";
 import PageHeader from "../../components/PageHeader";
-import { LiveChartGrid, LiveDonutChart, LiveMetricBars } from "../../components/LiveCharts";
+import {
+  LiveChartGrid,
+  LiveDonutChart,
+  LiveMetricBars,
+} from "../../components/LiveCharts";
 import { toast } from "../../utils/toast";
 import {
   useAccountsKpis,
@@ -54,8 +58,18 @@ import {
 
 function getRevenueOrigin(details?: string) {
   if (!details) return "External";
-  const internalSignals = ["summer", "instagram", "google", "facebook", "search", "promo", "newsletter"];
-  return internalSignals.some((signal) => details.toLowerCase().includes(signal))
+  const internalSignals = [
+    "summer",
+    "instagram",
+    "google",
+    "facebook",
+    "search",
+    "promo",
+    "newsletter",
+  ];
+  return internalSignals.some((signal) =>
+    details.toLowerCase().includes(signal),
+  )
     ? "Internal"
     : "External";
 }
@@ -815,7 +829,10 @@ export default function Accounts() {
     sourceType: entry.sourceType || "external",
     sourceName: entry.sourceName || entry.note || "Direct attribution",
     responsibleAgent:
-      entry.responsibleAgentName || entry.loggedByName || entry.responsibleAgentId || "Accounts team",
+      entry.responsibleAgentName ||
+      entry.loggedByName ||
+      entry.responsibleAgentId ||
+      "Accounts team",
     paymentMethod: entry.paymentMethod || "Not specified",
     transactionRef: entry.transactionRef || "Not supplied",
     status: entry.status || "recorded",
@@ -830,8 +847,14 @@ export default function Accounts() {
   const externalClients = revenueEntries.filter(
     (entry) => entry.sourceType !== "internal_campaign",
   );
-  const internalRevenue = internalClients.reduce((sum, entry) => sum + entry.amount, 0);
-  const externalRevenue = externalClients.reduce((sum, entry) => sum + entry.amount, 0);
+  const internalRevenue = internalClients.reduce(
+    (sum, entry) => sum + entry.amount,
+    0,
+  );
+  const externalRevenue = externalClients.reduce(
+    (sum, entry) => sum + entry.amount,
+    0,
+  );
 
   return (
     <div className="property-page accounts-page space-y-6 pb-10 select-none relative">
@@ -867,7 +890,6 @@ export default function Accounts() {
               >
                 Record Client Payment
               </Button>
-
             </>
           )}
 
@@ -923,9 +945,7 @@ export default function Accounts() {
             }
             className="bg-neutral-100 hover:bg-neutral-200 border-none font-bold text-xs py-2 px-4 rounded-lg ml-auto"
           >
-            {showRevenueSourceDashboard
-              ? "Hide Sources"
-              : "Revenue Sources"}
+            {showRevenueSourceDashboard ? "Hide Sources" : "Revenue Sources"}
           </Button>
         </div>
       )}
@@ -1008,13 +1028,18 @@ export default function Accounts() {
                 ).map((c) => (
                   <div
                     key={c.id}
-                    onClick={() => c.clientId && navigate(`/clients/${c.clientId}`)}
+                    onClick={() =>
+                      c.clientId && navigate(`/clients/${c.clientId}`)
+                    }
                     className={`p-4 border border-border-warm rounded-lg bg-white transition-colors ${c.clientId ? "cursor-pointer hover:border-brand-teal/40" : ""}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate font-bold text-charcoal">
-                          {c.clientName} <span className="font-medium text-muted-gray">({c.clientCode})</span>
+                          {c.clientName}{" "}
+                          <span className="font-medium text-muted-gray">
+                            ({c.clientCode})
+                          </span>
                         </p>
                         <p className="mt-1 truncate text-[10px] font-semibold text-brand-teal">
                           {c.sourceName}
@@ -1026,7 +1051,9 @@ export default function Accounts() {
                     </div>
                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 pt-3 text-[9px] font-semibold text-slate-500">
                       <span>Agent: {c.responsibleAgent}</span>
-                      <span>Method: {String(c.paymentMethod).replace(/_/g, " ")}</span>
+                      <span>
+                        Method: {String(c.paymentMethod).replace(/_/g, " ")}
+                      </span>
                       <span>Ref: {c.transactionRef}</span>
                       <span className="capitalize">{c.status}</span>
                     </div>
@@ -1122,10 +1149,30 @@ export default function Accounts() {
           description="Compare funds collected with the balances and obligations currently requiring attention."
           loading={isKpisLoading}
           data={[
-            { label: "Revenue collected", value: totalRevenueCollected, displayValue: `₦${totalRevenueCollected.toLocaleString()}`, color: "#0b909c" },
-            { label: "Outstanding payments", value: outstandingPayment, displayValue: `₦${outstandingPayment.toLocaleString()}`, color: "#ff7758" },
-            { label: "Pipeline dues", value: pipelineDues, displayValue: `₦${pipelineDues.toLocaleString()}`, color: "#c5a880" },
-            { label: "Due investments", value: dueInvestment, displayValue: `₦${dueInvestment.toLocaleString()}`, color: "#34515b" },
+            {
+              label: "Revenue collected",
+              value: totalRevenueCollected,
+              displayValue: `₦${totalRevenueCollected.toLocaleString()}`,
+              color: "#0b909c",
+            },
+            {
+              label: "Outstanding payments",
+              value: outstandingPayment,
+              displayValue: `₦${outstandingPayment.toLocaleString()}`,
+              color: "#ff7758",
+            },
+            {
+              label: "Pipeline dues",
+              value: pipelineDues,
+              displayValue: `₦${pipelineDues.toLocaleString()}`,
+              color: "#c5a880",
+            },
+            {
+              label: "Due investments",
+              value: dueInvestment,
+              displayValue: `₦${dueInvestment.toLocaleString()}`,
+              color: "#34515b",
+            },
           ]}
         />
         <LiveDonutChart
@@ -1135,18 +1182,31 @@ export default function Accounts() {
           centerLabel="Open value"
           loading={isKpisLoading}
           data={[
-            { label: "Client payments", value: outstandingPayment, displayValue: `₦${outstandingPayment.toLocaleString()}`, color: "#ff7758" },
-            { label: "Agent commissions", value: outstandingCommission, displayValue: `₦${outstandingCommission.toLocaleString()}`, color: "#0b909c" },
-            { label: "Investment payouts", value: dueInvestment, displayValue: `₦${dueInvestment.toLocaleString()}`, color: "#c5a880" },
+            {
+              label: "Client payments",
+              value: outstandingPayment,
+              displayValue: `₦${outstandingPayment.toLocaleString()}`,
+              color: "#ff7758",
+            },
+            {
+              label: "Agent commissions",
+              value: outstandingCommission,
+              displayValue: `₦${outstandingCommission.toLocaleString()}`,
+              color: "#0b909c",
+            },
+            {
+              label: "Investment payouts",
+              value: dueInvestment,
+              displayValue: `₦${dueInvestment.toLocaleString()}`,
+              color: "#c5a880",
+            },
           ]}
         />
       </LiveChartGrid>
 
       {/* Primary finance register */}
       <div className="space-y-6">
-        <div
-          className="w-full bg-white border border-border-warm rounded-lg shadow-sm overflow-hidden"
-        >
+        <div className="w-full bg-white border border-border-warm rounded-lg shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-border-warm bg-neutral-50/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h2 className="font-serif text-lg font-bold text-brand-teal">
@@ -1311,7 +1371,7 @@ export default function Accounts() {
                                 size="sm"
                                 variant="outlined"
                                 onClick={() => setSelectedReceiptRow(row)}
-                                className="text-[10px] py-1 px-2.5 hover:!bg-brand-teal hover:!border-brand-teal hover:!text-white [&:hover_span]:!text-white"
+                                className="text-[10px] py-1 px-2.5 hover:bg-brand-teal! hover:border-brand-teal! hover:text-white! [&:hover_span]:text-white!"
                               >
                                 View Receipt
                               </Button>
@@ -1353,7 +1413,8 @@ export default function Accounts() {
                   </h2>
                 </div>
                 <p className="mt-1 text-[11px] text-muted-gray">
-                  Clients whose payments are moving into plot allocation and verification.
+                  Clients whose payments are moving into plot allocation and
+                  verification.
                 </p>
               </div>
               <span className="w-fit rounded-full bg-white px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-brand-teal shadow-sm">
@@ -1368,60 +1429,60 @@ export default function Accounts() {
               </span>
             </div>
 
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {clients.filter(
-                  (c) =>
-                    c.journeyStage === "Allocation" ||
-                    c.journeyStage === "Awaiting Allocation",
-                ).length === 0 ? (
-                  <p className="col-span-full text-center italic text-muted-gray text-xs py-8">
-                    No active allocation records found.
-                  </p>
-                ) : (
-                  clients
-                    .filter(
-                      (c) =>
-                        c.journeyStage === "Allocation" ||
-                        c.journeyStage === "Awaiting Allocation",
-                    )
-                    .map((c) => (
-                      <div
-                        key={c.id}
-                        className="rounded-xl border border-white bg-white p-4 text-xs shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-teal/20 hover:shadow-md"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-bold text-charcoal">{c.name}</p>
-                            <p className="mt-0.5 font-mono text-[9px] text-brand-teal">
-                              {c.code}
-                            </p>
-                          </div>
-                          <span className="rounded-full bg-brand-teal/8 px-2 py-1 text-[8px] font-bold uppercase tracking-wider text-brand-teal">
-                            {c.journeyStage}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {clients.filter(
+                (c) =>
+                  c.journeyStage === "Allocation" ||
+                  c.journeyStage === "Awaiting Allocation",
+              ).length === 0 ? (
+                <p className="col-span-full text-center italic text-muted-gray text-xs py-8">
+                  No active allocation records found.
+                </p>
+              ) : (
+                clients
+                  .filter(
+                    (c) =>
+                      c.journeyStage === "Allocation" ||
+                      c.journeyStage === "Awaiting Allocation",
+                  )
+                  .map((c) => (
+                    <div
+                      key={c.id}
+                      className="rounded-xl border border-white bg-white p-4 text-xs shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-teal/20 hover:shadow-md"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-bold text-charcoal">{c.name}</p>
+                          <p className="mt-0.5 font-mono text-[9px] text-brand-teal">
+                            {c.code}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-brand-teal/8 px-2 py-1 text-[8px] font-bold uppercase tracking-wider text-brand-teal">
+                          {c.journeyStage}
+                        </span>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border-warm/60 pt-3">
+                        <div>
+                          <span className="block text-[8px] font-bold uppercase tracking-wider text-muted-gray/60">
+                            Estate
+                          </span>
+                          <span className="mt-1 block text-[10px] font-semibold text-charcoal">
+                            {c.estateLabel || "Not allocated"}
                           </span>
                         </div>
-                        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border-warm/60 pt-3">
-                          <div>
-                            <span className="block text-[8px] font-bold uppercase tracking-wider text-muted-gray/60">
-                              Estate
-                            </span>
-                            <span className="mt-1 block text-[10px] font-semibold text-charcoal">
-                              {c.estateLabel || "Not allocated"}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="block text-[8px] font-bold uppercase tracking-wider text-muted-gray/60">
-                              Plot details
-                            </span>
-                            <span className="mt-1 block text-[10px] font-semibold text-charcoal">
-                              {c.coordinates || "Not plotted"}
-                            </span>
-                          </div>
+                        <div>
+                          <span className="block text-[8px] font-bold uppercase tracking-wider text-muted-gray/60">
+                            Plot details
+                          </span>
+                          <span className="mt-1 block text-[10px] font-semibold text-charcoal">
+                            {c.coordinates || "Not plotted"}
+                          </span>
                         </div>
                       </div>
-                    ))
-                )}
-              </div>
+                    </div>
+                  ))
+              )}
+            </div>
           </section>
         )}
       </div>

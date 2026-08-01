@@ -27,7 +27,7 @@ const Topbar = ({ toggleSidebar, isMobile }: TopbarProps) => {
   const markReadMutation = useMarkNotificationReadMutation();
 
   return (
-    <header className="app-topbar w-full min-h-[74px] flex items-center justify-between gap-4 px-4 sm:px-6 bg-white shrink-0">
+    <header className="app-topbar w-full min-h-18.5 flex items-center justify-between gap-4 px-4 sm:px-6 bg-white shrink-0">
       <div className="flex items-center flex-1">
         <button
           type="button"
@@ -35,7 +35,10 @@ const Topbar = ({ toggleSidebar, isMobile }: TopbarProps) => {
           onClick={toggleSidebar}
           className="topbar-icon mr-4"
         >
-          <FlatIcon name={isMobile ? "menu-burger" : "angle-small-left"} className="text-[15px]" />
+          <FlatIcon
+            name={isMobile ? "menu-burger" : "angle-small-left"}
+            className="text-[15px]"
+          />
         </button>
 
         {/* Global search hidden until its cross-module search endpoint is available. */}
@@ -59,10 +62,12 @@ const Topbar = ({ toggleSidebar, isMobile }: TopbarProps) => {
             )}
           </button>
           {showNotifications && (
-            <div className="absolute right-0 top-12 z-[1000] w-80 overflow-hidden rounded-2xl border border-brand-teal/10 bg-white shadow-[0_18px_48px_rgba(23,35,30,0.16)]">
+            <div className="absolute right-0 top-12 z-1000 w-80 overflow-hidden rounded-2xl border border-brand-teal/10 bg-white shadow-[0_18px_48px_rgba(23,35,30,0.16)]">
               <div className="flex items-center justify-between border-b border-border-warm px-4 py-3">
                 <div>
-                  <p className="text-xs font-bold text-charcoal">Notifications</p>
+                  <p className="text-xs font-bold text-charcoal">
+                    Notifications
+                  </p>
                   <p className="mt-0.5 text-[9px] text-muted-gray">
                     {unreadCount} unread update{unreadCount === 1 ? "" : "s"}
                   </p>
