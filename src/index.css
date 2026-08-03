@@ -280,8 +280,37 @@ button, a, input, select, textarea {
   }
 
   .metric-card {
+    container-type: inline-size;
     min-height: 0;
     border-radius: 20px;
+  }
+
+  .metric-card-value-default {
+    font-size: 1.75rem;
+  }
+
+  .metric-card-value-long {
+    font-size: 1.5rem;
+  }
+
+  @container (max-width: 300px) {
+    .metric-card-value-default {
+      font-size: 1.5rem;
+    }
+
+    .metric-card-value-long {
+      font-size: 1.25rem;
+    }
+  }
+
+  @container (max-width: 240px) {
+    .metric-card-value-default {
+      font-size: 1.35rem;
+    }
+
+    .metric-card-value-long {
+      font-size: 1.125rem;
+    }
   }
 
   .metric-card:hover {

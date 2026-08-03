@@ -24,7 +24,7 @@ export default function KpiCard({
 }: KpiCardProps) {
   const isRisk = variant === "risk";
   const hasLongValue =
-    typeof value === "string" && value.replace(/\s/g, "").length > 14;
+    typeof value === "string" && value.replace(/\s/g, "").length >= 12;
 
   const cardBg = isProminent
     ? "bg-brand-teal text-white border-transparent"
@@ -59,9 +59,9 @@ export default function KpiCard({
         compact
           ? "min-h-28 p-4"
           : "min-h-[132px] p-5"
-      } transition-all duration-200 rounded-2xl flex justify-between items-start shadow-sm relative overflow-hidden group`}
+      } transition-all duration-200 rounded-2xl flex gap-3 justify-between items-start shadow-sm relative overflow-hidden group`}
     >
-      <div className={`${compact ? "min-w-0 flex-1 space-y-2" : "space-y-2.5"} z-10`}>
+      <div className={`${compact ? "space-y-2" : "space-y-2.5"} min-w-0 flex-1 z-10`}>
         {/* Title */}
         <p
           className={`${compact ? "pr-2 text-[10px] leading-3" : "text-[11px]"} font-semibold ${isProminent ? "text-white/75" : "text-muted-gray"}`}
@@ -76,8 +76,10 @@ export default function KpiCard({
               ? hasLongValue
                 ? "text-[16px] 2xl:text-[18px]"
                 : "text-[19px] 2xl:text-[22px]"
-              : "text-[24px] xl:text-[28px]"
-          } whitespace-nowrap tabular-nums font-bold leading-none mt-2 tracking-tight font-sans ${valueColor}`}
+              : hasLongValue
+                ? "metric-card-value-long"
+                : "metric-card-value-default"
+          } metric-card-value whitespace-nowrap tabular-nums font-bold leading-none mt-2 tracking-tight font-sans ${valueColor}`}
         >
           {value}
         </div>

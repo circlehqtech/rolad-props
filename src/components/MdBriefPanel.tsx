@@ -593,8 +593,13 @@ export default function MdBriefPanel({
   }
 
   return (
-    <div className="bg-brand-teal/5 border border-brand-teal/15 p-7 rounded-2xl shadow-sm relative overflow-hidden space-y-6 select-none animate-scale-up">
-      <div className="absolute right-0 top-0 w-96 h-96 bg-brand-teal/5 rounded-full blur-3xl pointer-events-none" />
+    <div className="relative z-20 space-y-6 overflow-visible rounded-2xl border border-brand-teal/15 bg-brand-teal/5 p-7 shadow-sm select-none animate-scale-up">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
+      >
+        <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-brand-teal/5 blur-3xl" />
+      </div>
 
       {/* Header */}
       <div className="space-y-3.5 relative z-10">
@@ -709,7 +714,7 @@ export default function MdBriefPanel({
             Download Brief
           </Button>
           {showDownloadMenu && (
-            <div className="absolute mt-2 w-44 bg-white border border-border-warm rounded-lg shadow-lg z-50 py-1 overflow-hidden animate-scale-up">
+            <div className="absolute left-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-lg border border-border-warm bg-white py-1 shadow-lg animate-scale-up">
               <button
                 onClick={() => handleDownload("docx")}
                 className="w-full text-left px-4 py-2 hover:bg-neutral-50 text-xs text-charcoal font-bold uppercase transition-colors cursor-pointer"
