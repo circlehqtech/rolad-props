@@ -20,17 +20,44 @@ export function toNaira(kobo: string | null | undefined): number {
 }
 
 /**
- * Formats a bigint kobo string value into a localized Nigerian Naira string representation.
+ * Formats a Naira number into a compact abbreviated string.
+ * e.g. 1_000_000 → "₦1M", 2_500_000_000 → "₦2.5B", 31_250_999 → "₦31.3M"
+ * @param naira Naira value as a JS number
+ */
+export function formatCompactNaira(naira: number): string {
+  const abs = Math.abs(naira);
+  const sign = naira < 0 ? "-" : "";
+
+  if (abs >= 1_000_000_000_000) {
+    const val = naira / 1_000_000_000_000;
+    const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, "");
+    return `${sign}₦${formatted}T`;
+  }
+  if (abs >= 1_000_000_000) {
+    const val = naira / 1_000_000_000;
+    const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, "");
+    return `${sign}₦${formatted}B`;
+  }
+  if (abs >= 1_000_000) {
+    const val = naira / 1_000_000;
+    const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, "");
+    return `${sign}₦${formatted}M`;
+  }
+  if (abs >= 1_000) {
+    const val = naira / 1_000;
+    const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(/\.0$/, "");
+    return `${sign}₦${formatted}K`;
+  }
+  return `${sign}₦${naira.toLocaleString()}`;
+}
+
+/**
+ * Formats a bigint kobo string value into a compact Naira string for display.
+ * e.g. "3125099900" → "₦31.3M"
  * @param kobo Bigint string value, e.g., "118000000"
  */
 export function formatNaira(kobo: string | null | undefined): string {
-  const nairaVal = toNaira(kobo);
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(nairaVal);
+  return formatCompactNaira(toNaira(kobo));
 }
 
 /**

@@ -77,7 +77,7 @@ interface MdBriefPanelProps {
 export default function MdBriefPanel({
   clients,
   approvals,
-  variant = "embedded",
+  variant = "floating-button",
 }: MdBriefPanelProps) {
   const [showDrawer, setShowDrawer] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
@@ -410,7 +410,7 @@ export default function MdBriefPanel({
 
   const renderDrawer = () => (
     <div className="fixed inset-0 z-50 flex justify-end bg-charcoal/60 backdrop-blur-sm animate-fade-in min-h-screen">
-      <div className="bg-white border-l border-border-warm h-full max-w-xl w-full shadow-2xl p-8 flex flex-col justify-between animate-slide-in relative">
+      <div className="bg-white border-l border-border-warm h-full max-w-3xl w-full shadow-2xl p-8 flex flex-col justify-between animate-slide-in relative">
         <button
           onClick={() => setShowDrawer(false)}
           className="absolute top-4 right-4 text-muted-gray hover:text-charcoal cursor-pointer p-1.5 rounded-full hover:bg-neutral-100"
@@ -541,12 +541,6 @@ export default function MdBriefPanel({
                   className="w-full text-left px-4 py-2 hover:bg-neutral-50 text-xs text-charcoal font-bold uppercase transition-colors cursor-pointer"
                 >
                   .PDF Document
-                </button>
-                <button
-                  onClick={() => handleDownload("csv")}
-                  className="w-full text-left px-4 py-2 hover:bg-neutral-50 text-xs text-charcoal font-bold uppercase transition-colors cursor-pointer"
-                >
-                  .CSV Excel File
                 </button>
               </div>
             )}
@@ -727,24 +721,18 @@ export default function MdBriefPanel({
               >
                 .PDF Document
               </button>
-              <button
-                onClick={() => handleDownload("csv")}
-                className="w-full text-left px-4 py-2 hover:bg-neutral-50 text-xs text-charcoal font-bold uppercase transition-colors cursor-pointer"
-              >
-                .CSV Excel File
-              </button>
             </div>
           )}
         </div>
 
-        <Button
+        {/* <Button
           variant="secondary"
           icon={<Send className="w-4 h-4 text-charcoal shrink-0" />}
           onClick={handleSendBrief}
           className="bg-neutral-100 hover:bg-neutral-200 border-none font-bold text-xs py-2 px-4 shadow-sm rounded-lg flex items-center gap-2"
         >
           Send Brief
-        </Button>
+        </Button> */}
       </div>
 
       {showDrawer && renderDrawer()}

@@ -39,16 +39,35 @@ export const toApiTimeRange = (range: TimeRangeValue) =>
     } as const
   )[range];
 
+export function buildTimeRangeParams(
+  state?: TimeRangeFilterState,
+): Record<string, string> {
+  if (!state) return { timeRange: "all_time" };
+  if (state.range === "specific-date") {
+    return state.date ? { date: state.date } : { timeRange: "all_time" };
+  }
+  if (state.range === "custom") {
+    if (state.start && state.end) {
+      return { fromDate: state.start, toDate: state.end };
+    }
+    return { timeRange: "all_time" };
+  }
+  const apiRange = toApiTimeRange(state.range);
+  return { timeRange: apiRange || "all_time" };
+}
+
 interface TimeRangePickerProps {
   onChange: (state: TimeRangeFilterState) => void;
+  initialRange?: TimeRangeValue;
   className?: string;
 }
 
 export default function TimeRangePicker({
   onChange,
+  initialRange = "all",
   className = "",
 }: TimeRangePickerProps) {
-  const [range, setRange] = useState<TimeRangeValue>("all");
+  const [range, setRange] = useState<TimeRangeValue>(initialRange);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [specificDate, setSpecificDate] = useState("");

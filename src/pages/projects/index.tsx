@@ -136,9 +136,12 @@ export default function Projects() {
     );
   });
 
-  // The API returns the MD's full pending queue. Project matching adds context,
-  // but must not hide valid requests that are unlinked or belong to another job.
-  const approvalQueue = liveApprovals;
+  // The API returns the MD's full pending queue. Fall back to mock store pending items if live API is empty.
+  const mockPendingApprovals = approvals.filter(
+    (a: any) => a.status === "Pending",
+  );
+  const approvalQueue =
+    liveApprovals.length > 0 ? liveApprovals : mockPendingApprovals;
 
   useEffect(() => {
     if (!showApprovalReviewModal) return;
@@ -194,6 +197,69 @@ export default function Projects() {
         section="Estates & Sites"
         title="Estates & Sites"
         description="Follow estate infrastructure, plot allocations and construction milestones."
+        actions={
+          isCEO ? (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => {
+                setDecisionNote("");
+                setShowApprovalReviewModal(true);
+              }}
+              icon={<FlatIcon name="shield-check" className="text-[14px]" />}
+              className="relative btn-glow-accent bg-[#0e6b57] hover:bg-[#13886f] active:bg-[#0c5948] text-white border-[#0e6b57] py-2.5 px-4.5 text-xs sm:text-sm font-bold rounded-lg shadow-md cursor-pointer transition-colors"
+            >
+              Review Approvals
+              {approvalQueue.length > 0 && (
+                <span className="absolute -top-2 -right-2 grid h-5 min-w-5 place-items-center rounded-full bg-[#d64550] text-white font-extrabold text-[10px] px-1 shadow-md border-2 border-white">
+                  {approvalQueue.length}
+                </span>
+              )}
+            </Button>
+          ) : role === "Project Manager" ? (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => {
+                setEditingMilestone("architectural");
+                setMilestoneStatus("pending");
+                setShowLandUpdateModal(true);
+              }}
+              className="bg-[#0e6b57] hover:bg-[#13886f] active:bg-[#0c5948] text-white border-[#0e6b57] py-2.5 px-4.5 text-xs sm:text-sm font-bold rounded-lg shadow-md cursor-pointer transition-colors flex items-center gap-1.5"
+            >
+              Log Milestone Update
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => {
+                setReqType(
+                  role === "Administrator"
+                    ? "Vehicle Fuel Request"
+                    : "Payment Confirmation Request",
+                );
+                const currentProj = activeProjects.find(
+                  (p: any) => p.id === selectedProject,
+                );
+                const activeSubscribers = clients.filter(
+                  (c: any) =>
+                    c.lands?.some(
+                      (l: any) =>
+                        l.name === currentProj?.landName,
+                    ),
+                );
+                setTargetClientCode(
+                  activeSubscribers[0]?.code || "GENERAL",
+                );
+                setShowActionRequestModal(true);
+              }}
+              className="bg-[#0e6b57] hover:bg-[#13886f] active:bg-[#0c5948] text-white border-[#0e6b57] py-2.5 px-4.5 text-xs sm:text-sm font-bold rounded-lg shadow-md cursor-pointer transition-colors flex items-center gap-1.5"
+            >
+              Request Approval
+            </Button>
+          )
+        }
       />
       {/* Projects list */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12 items-start">
@@ -242,94 +308,118 @@ export default function Projects() {
                 const isSelected = selectedProject === project.id;
 
                 return (
-                <article
-                  key={project.id}
-                  onClick={() => setSelectedProject(project.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      setSelectedProject(project.id);
-                    }
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={isSelected}
-                  className={`group relative w-full cursor-pointer overflow-hidden rounded-2xl border p-4 text-left outline-none transition-[border-color,background-color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 ${
-                    isSelected
-                      ? "border-[#075f69] bg-gradient-to-br from-[#087b86] to-[#075f69] text-white shadow-[0_16px_34px_rgba(7,95,105,0.24)]"
-                      : "border-brand-teal/10 bg-white hover:border-brand-teal/25 hover:bg-[#f8fcfc] hover:shadow-[0_10px_28px_rgba(7,52,59,0.08)]"
-                  }`}
-                >
-                  {isSelected && (
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/45" />
-                  )}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        {isSelected && <CheckCircle2 className="h-4 w-4 shrink-0 text-white" />}
-                        <h3 className={`truncate font-serif text-[15px] font-bold ${isSelected ? "text-white" : "text-charcoal"}`}>
-                        {project.landName}
-                        </h3>
+                  <article
+                    key={project.id}
+                    onClick={() => setSelectedProject(project.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedProject(project.id);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isSelected}
+                    className={`group relative w-full cursor-pointer overflow-hidden rounded-2xl border p-4 text-left outline-none transition-[border-color,background-color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-brand-teal focus-visible:ring-offset-2 ${
+                      isSelected
+                        ? "border-[#073c31] bg-gradient-to-br from-[#128a70] via-[#0e6b57] to-[#084538] text-white shadow-[0_16px_34px_rgba(7,95,105,0.24)]"
+                        : "border-brand-teal/10 bg-white hover:border-brand-teal/25 hover:bg-[#f8fcfc] hover:shadow-[0_10px_28px_rgba(7,52,59,0.08)]"
+                    }`}
+                  >
+                    {isSelected && (
+                      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/45" />
+                    )}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          {isSelected && (
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-white" />
+                          )}
+                          <h3
+                            className={`truncate font-serif text-[15px] font-bold ${isSelected ? "text-white" : "text-charcoal"}`}
+                          >
+                            {project.landName}
+                          </h3>
+                        </div>
+                        <p
+                          className={`mt-1.5 truncate text-[11px] font-medium ${isSelected ? "text-white/90" : "text-muted-gray"}`}
+                        >
+                          {project.estateLabel}
+                        </p>
                       </div>
-                      <p className={`mt-1.5 truncate text-[11px] font-medium ${isSelected ? "text-white/90" : "text-muted-gray"}`}>
-                        {project.estateLabel}
-                      </p>
+                      <span
+                        className={`flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-bold ${isSelected ? "border border-white/20 bg-white/15 text-white" : "bg-brand-teal/6 text-brand-teal"}`}
+                      >
+                        <MapPin className="h-3 w-3" />
+                        {project.coordinates}
+                      </span>
                     </div>
-                    <span className={`flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-bold ${isSelected ? "border border-white/20 bg-white/15 text-white" : "bg-brand-teal/6 text-brand-teal"}`}>
-                      <MapPin className="h-3 w-3" />
-                      {project.coordinates}
-                    </span>
-                  </div>
 
-                  {/* Milestones brief */}
-                  {role !== "Administrator" ? (
-                    <div className="mt-4 grid grid-cols-3 gap-2 text-center font-bold uppercase">
-                      <div className={`rounded-xl border px-2 py-2.5 ${isSelected ? "border-white/20 bg-white/10" : "border-border-warm/70 bg-slate-50/80"}`}>
-                        <p className={`mb-1.5 text-[8px] tracking-[0.08em] ${isSelected ? "text-[#e1fafb]" : "text-muted-gray"}`}>
-                          Architectural
-                        </p>
-                        <span
-                          className={`inline-flex rounded-md px-2 py-0.5 text-[9px] font-extrabold ${milestoneBadgeClass(project.architectural, isSelected)}`}
+                    {/* Milestones brief */}
+                    {role !== "Administrator" ? (
+                      <div className="mt-4 grid grid-cols-3 gap-2 text-center font-bold uppercase">
+                        <div
+                          className={`rounded-xl border px-2 py-2.5 ${isSelected ? "border-white/20 bg-white/10" : "border-border-warm/70 bg-slate-50/80"}`}
                         >
-                          {formatLabel(project.architectural)}
-                        </span>
-                      </div>
+                          <p
+                            className={`mb-1.5 text-[8px] tracking-[0.08em] ${isSelected ? "text-[#e1fafb]" : "text-muted-gray"}`}
+                          >
+                            Architectural
+                          </p>
+                          <span
+                            className={`inline-flex rounded-md px-2 py-0.5 text-[9px] font-extrabold ${milestoneBadgeClass(project.architectural, isSelected)}`}
+                          >
+                            {formatLabel(project.architectural)}
+                          </span>
+                        </div>
 
-                      <div className={`rounded-xl border px-2 py-2.5 ${isSelected ? "border-white/20 bg-white/10" : "border-border-warm/70 bg-slate-50/80"}`}>
-                        <p className={`mb-1.5 text-[8px] tracking-[0.08em] ${isSelected ? "text-[#e1fafb]" : "text-muted-gray"}`}>
-                          Structural
-                        </p>
-                        <span
-                          className={`inline-flex rounded-md px-2 py-0.5 text-[9px] font-extrabold ${milestoneBadgeClass(project.structural, isSelected)}`}
+                        <div
+                          className={`rounded-xl border px-2 py-2.5 ${isSelected ? "border-white/20 bg-white/10" : "border-border-warm/70 bg-slate-50/80"}`}
                         >
-                          {formatLabel(project.structural)}
-                        </span>
-                      </div>
+                          <p
+                            className={`mb-1.5 text-[8px] tracking-[0.08em] ${isSelected ? "text-[#e1fafb]" : "text-muted-gray"}`}
+                          >
+                            Structural
+                          </p>
+                          <span
+                            className={`inline-flex rounded-md px-2 py-0.5 text-[9px] font-extrabold ${milestoneBadgeClass(project.structural, isSelected)}`}
+                          >
+                            {formatLabel(project.structural)}
+                          </span>
+                        </div>
 
-                      <div className={`rounded-xl border px-2 py-2.5 ${isSelected ? "border-white/20 bg-white/10" : "border-border-warm/70 bg-slate-50/80"}`}>
-                        <p className={`mb-1.5 text-[8px] tracking-[0.08em] ${isSelected ? "text-[#e1fafb]" : "text-muted-gray"}`}>
-                          Civil
-                        </p>
+                        <div
+                          className={`rounded-xl border px-2 py-2.5 ${isSelected ? "border-white/20 bg-white/10" : "border-border-warm/70 bg-slate-50/80"}`}
+                        >
+                          <p
+                            className={`mb-1.5 text-[8px] tracking-[0.08em] ${isSelected ? "text-[#e1fafb]" : "text-muted-gray"}`}
+                          >
+                            Civil
+                          </p>
+                          <span
+                            className={`inline-flex rounded-md px-2 py-0.5 text-[9px] font-extrabold ${milestoneBadgeClass(project.civil, isSelected)}`}
+                          >
+                            {formatLabel(project.civil)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className={`mt-4 flex items-center justify-between rounded-xl border p-2.5 text-[10px] font-bold uppercase ${isSelected ? "border-white/20 bg-white/10" : "border-border-warm/60 bg-white"}`}
+                      >
                         <span
-                          className={`inline-flex rounded-md px-2 py-0.5 text-[9px] font-extrabold ${milestoneBadgeClass(project.civil, isSelected)}`}
+                          className={`text-[8px] tracking-wide ${isSelected ? "text-[#e1fafb]" : "text-muted-gray"}`}
+                        >
+                          Civil Works Status:
+                        </span>
+                        <span
+                          className={`rounded-md px-2 py-0.5 font-extrabold ${milestoneBadgeClass(project.civil, isSelected)}`}
                         >
                           {formatLabel(project.civil)}
                         </span>
                       </div>
-                    </div>
-                  ) : (
-                    <div className={`mt-4 flex items-center justify-between rounded-xl border p-2.5 text-[10px] font-bold uppercase ${isSelected ? "border-white/20 bg-white/10" : "border-border-warm/60 bg-white"}`}>
-                      <span className={`text-[8px] tracking-wide ${isSelected ? "text-[#e1fafb]" : "text-muted-gray"}`}>
-                        Civil Works Status:
-                      </span>
-                      <span
-                        className={`rounded-md px-2 py-0.5 font-extrabold ${milestoneBadgeClass(project.civil, isSelected)}`}
-                      >
-                        {formatLabel(project.civil)}
-                      </span>
-                    </div>
-                  )}
-                </article>
+                    )}
+                  </article>
                 );
               })
             )}
@@ -339,194 +429,140 @@ export default function Projects() {
         {/* Development update form */}
         <div className="overflow-hidden rounded-3xl border border-brand-teal/10 bg-white shadow-[0_24px_60px_rgba(23,35,30,0.08)] xl:sticky xl:top-0 xl:col-span-7">
           <div>
-            <div className="flex items-center gap-3 bg-gradient-to-r from-brand-teal to-[#08717b] px-6 py-5 text-white">
+            <div className="flex items-center gap-3 bg-linear-to-r from-[#0e6b57] to-[#0b5444] px-6 py-5 text-white">
               <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/15 bg-white/15 text-white">
                 <Compass className="w-5 h-5" />
               </span>
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Selected property</p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">
+                  Selected property
+                </p>
                 <h2 className="font-serif text-xl font-bold text-white">
-                {role === "Administrator"
-                      ? "Allocation Desk"
-                      : "Site Progress"}
+                  {role === "Administrator"
+                    ? "Allocation Desk"
+                    : "Site Progress"}
                 </h2>
               </div>
             </div>
 
             <div className="p-6 sm:p-7">
-            {selectedProject ? (
-              (() => {
-                const project = (activeProjects.find(
-                  (p: any) => p.id === selectedProject,
-                ) || activeProjects[0]) as any;
-                if (!project) {
+              {selectedProject ? (
+                (() => {
+                  const project = (activeProjects.find(
+                    (p: any) => p.id === selectedProject,
+                  ) || activeProjects[0]) as any;
+                  if (!project) {
+                    return (
+                      <div className="text-center py-20 text-muted-gray text-xs font-semibold">
+                        Select an active land development project to view
+                        milestone controls.
+                      </div>
+                    );
+                  }
                   return (
-                    <div className="text-center py-20 text-muted-gray text-xs font-semibold">
-                      Select an active land development project to view
-                      milestone controls.
-                    </div>
-                  );
-                }
-                return (
-                  <div className="space-y-7">
-                    <div className="rounded-2xl bg-gradient-to-br from-brand-teal/8 to-brand-lime/10 p-5 ring-1 ring-brand-teal/10">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[8px] font-bold uppercase tracking-wider text-brand-teal shadow-sm">
-                        <MapPin className="h-3 w-3" /> Active site
-                      </span>
-                      <h3 className="mt-3 font-serif font-bold text-charcoal text-2xl">
-                        {project.landName}
-                      </h3>
-                      <p className="text-xs text-muted-gray mt-1.5 font-medium">
-                        Site Location: {project.estateLabel} (
-                        {project.coordinates})
-                      </p>
-                    </div>
+                    <div className="space-y-7">
+                      <div className="rounded-2xl bg-gradient-to-br from-brand-teal/8 to-brand-lime/10 p-5 ring-1 ring-brand-teal/10">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[8px] font-bold uppercase tracking-wider text-brand-teal shadow-sm">
+                          <MapPin className="h-3 w-3" /> Active site
+                        </span>
+                        <h3 className="mt-3 font-serif font-bold text-charcoal text-2xl">
+                          {project.landName}
+                        </h3>
+                        <p className="text-xs text-muted-gray mt-1.5 font-medium">
+                          Site Location: {project.estateLabel} (
+                          {project.coordinates})
+                        </p>
+                      </div>
 
-                    <div className="space-y-3">
-                      <h4 className="text-[10px] uppercase font-bold text-muted-gray tracking-wider">
-                        Development Milestones
-                      </h4>
+                      <div className="space-y-3">
+                        <h4 className="text-[10px] uppercase font-bold text-muted-gray tracking-wider">
+                          Development Milestones
+                        </h4>
 
-                      {[
-                        {
-                          key: "architectural",
-                          label: "Architectural Layout Clearances",
-                          current: project.architectural,
-                        },
-                        {
-                          key: "structural",
-                          label: "Structural Integrity Clearances",
-                          current: project.structural,
-                        },
-                        {
-                          key: "civil",
-                          label: "Civil and Foundation Works",
-                          current: project.civil,
-                        },
-                      ]
-                        .filter(
-                          (m) => role !== "Administrator" || m.key === "civil",
-                        )
-                        .map((m, index) => (
-                          <div
-                            key={m.key}
-                            className="flex items-center justify-between gap-4 rounded-2xl border border-border-warm/70 bg-white p-4 text-xs font-semibold shadow-sm transition-colors hover:border-brand-teal/25"
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className={`grid h-9 w-9 place-items-center rounded-xl text-[10px] font-extrabold ${
-                                m.current === "completed"
-                                  ? "bg-brand-olive/12 text-brand-olive"
-                                  : m.current === "in_progress"
-                                    ? "bg-status-due-soon/12 text-status-due-soon"
-                                    : "bg-neutral-100 text-muted-gray"
-                              }`}>
-                                {String(index + 1).padStart(2, "0")}
-                              </span>
-                              <div>
-                              <p className="font-bold text-charcoal">
-                                {m.label}
-                              </p>
-                              <p className="mt-0.5 text-[10px] text-muted-gray">
-                                Current Status:{" "}
-                                <span className="font-semibold text-brand-teal">
-                                  {formatLabel(m.current)}
+                        {[
+                          {
+                            key: "architectural",
+                            label: "Architectural Layout Clearances",
+                            current: project.architectural,
+                          },
+                          {
+                            key: "structural",
+                            label: "Structural Integrity Clearances",
+                            current: project.structural,
+                          },
+                          {
+                            key: "civil",
+                            label: "Civil and Foundation Works",
+                            current: project.civil,
+                          },
+                        ]
+                          .filter(
+                            (m) =>
+                              role !== "Administrator" || m.key === "civil",
+                          )
+                          .map((m, index) => (
+                            <div
+                              key={m.key}
+                              className="flex items-center justify-between gap-4 rounded-2xl border border-border-warm/70 bg-white p-4 text-xs font-semibold shadow-sm transition-colors hover:border-brand-teal/25"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className={`grid h-9 w-9 place-items-center rounded-xl text-[10px] font-extrabold ${
+                                    m.current === "completed"
+                                      ? "bg-brand-olive/12 text-brand-olive"
+                                      : m.current === "in_progress"
+                                        ? "bg-status-due-soon/12 text-status-due-soon"
+                                        : "bg-neutral-100 text-muted-gray"
+                                  }`}
+                                >
+                                  {String(index + 1).padStart(2, "0")}
                                 </span>
-                              </p>
+                                <div>
+                                  <p className="font-bold text-charcoal">
+                                    {m.label}
+                                  </p>
+                                  <p className="mt-0.5 text-[10px] text-muted-gray">
+                                    Current Status:{" "}
+                                    <span className="font-semibold text-brand-teal">
+                                      {formatLabel(m.current)}
+                                    </span>
+                                  </p>
+                                </div>
                               </div>
+                              <span
+                                className={`shrink-0 rounded-full px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider ${
+                                  m.current === "completed"
+                                    ? "bg-brand-olive/10 text-brand-olive"
+                                    : m.current === "in_progress"
+                                      ? "bg-status-due-soon/10 text-status-due-soon"
+                                      : "bg-neutral-100 text-muted-gray"
+                                }`}
+                              >
+                                {formatLabel(m.current)}
+                              </span>
                             </div>
-                            <span className={`shrink-0 rounded-full px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider ${
-                              m.current === "completed"
-                                ? "bg-brand-olive/10 text-brand-olive"
-                                : m.current === "in_progress"
-                                  ? "bg-status-due-soon/10 text-status-due-soon"
-                                  : "bg-neutral-100 text-muted-gray"
-                            }`}>
-                              {formatLabel(m.current)}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
+                          ))}
+                      </div>
 
-                    {/* Action update & request suite buttons */}
-                    <div className="flex flex-wrap gap-2.5 pt-4 border-t border-border-warm/60 mt-6">
-                      <Button
-                        variant="secondary"
-                        onClick={() => setShowSubscribersModal(true)}
-                        className="bg-neutral-100 hover:bg-neutral-200 border-none font-bold text-xs py-2 px-3 rounded-lg flex items-center gap-1 text-charcoal"
-                      >
-                        View Subscribed Clients
-                      </Button>
-
-                      {isCEO && (
-                        <Button
-                          variant="primary"
-                          onClick={() => {
-                            setDecisionNote("");
-                            setShowApprovalReviewModal(true);
-                          }}
-                          icon={<FlatIcon name="shield-check" className="text-[14px]" />}
-                          className="font-bold text-xs py-2 px-3 rounded-lg shadow-sm"
-                        >
-                          Review Approvals
-                          {approvalQueue.length > 0 && (
-                            <span className="ml-1 grid h-5 min-w-5 place-items-center rounded-full bg-white/18 px-1 text-[9px] text-white">
-                              {approvalQueue.length}
-                            </span>
-                          )}
-                        </Button>
-                      )}
-
-                      {role === "Project Manager" && (
-                        <Button
-                          variant="primary"
-                          onClick={() => {
-                            setEditingMilestone("architectural");
-                            setMilestoneStatus("pending");
-                            setShowLandUpdateModal(true);
-                          }}
-                          className="bg-brand-teal text-white hover:bg-brand-teal/95 font-bold text-xs py-2 px-3 rounded-lg flex items-center gap-1.5 shadow-sm"
-                        >
-                          Log Milestone Update
-                        </Button>
-                      )}
-
-                      {role !== "MD / CEO" && (
+                      {/* Action update & request suite buttons */}
+                      <div className="flex flex-wrap gap-2.5 pt-4 border-t border-border-warm/60 mt-6">
                         <Button
                           variant="secondary"
-                          onClick={() => {
-                            setReqType(
-                              role === "Administrator"
-                                ? "Vehicle Fuel Request"
-                                : "Payment Confirmation Request",
-                            );
-                            const currentProj = activeProjects.find(
-                              (p: any) => p.id === selectedProject,
-                            );
-                            const activeSubscribers = clients.filter((c: any) =>
-                              c.lands?.some(
-                                (l: any) => l.name === currentProj?.landName,
-                              ),
-                            );
-                            setTargetClientCode(
-                              activeSubscribers[0]?.code || "GENERAL",
-                            );
-                            setShowActionRequestModal(true);
-                          }}
-                          className="bg-neutral-100 hover:bg-neutral-200 border-none font-bold text-xs py-2 px-3 rounded-lg flex items-center gap-1.5 text-charcoal"
+                          onClick={() => setShowSubscribersModal(true)}
+                          className="bg-neutral-100 hover:bg-neutral-200 border-none font-bold text-xs py-2 px-3 rounded-lg flex items-center gap-1 text-charcoal"
                         >
-                          Request Approval
+                          View Subscribed Clients
                         </Button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })()
-            ) : (
-              <div className="text-center py-20 text-muted-gray text-xs font-semibold">
-                Select an active land development project to view milestone
-                controls.
-              </div>
-            )}
+                  );
+                })()
+              ) : (
+                <div className="text-center py-20 text-muted-gray text-xs font-semibold">
+                  Select an active land development project to view milestone
+                  controls.
+                </div>
+              )}
             </div>
           </div>
 
@@ -557,11 +593,15 @@ export default function Projects() {
                   <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-brand-teal">
                     MD decision desk
                   </p>
-                  <h3 id="project-approvals-title" className="mt-1 text-lg font-bold text-charcoal">
+                  <h3
+                    id="project-approvals-title"
+                    className="mt-1 text-lg font-bold text-charcoal"
+                  >
                     Project Approvals
                   </h3>
                   <p className="mt-1 text-[11px] text-muted-gray">
-                    {selectedProjectRecord.landName} · {approvalQueue.length} pending in queue
+                    {selectedProjectRecord.landName} · {approvalQueue.length}{" "}
+                    pending in queue
                   </p>
                 </div>
               </div>
@@ -579,7 +619,10 @@ export default function Projects() {
               {isApprovalsLoading ? (
                 <div className="space-y-3" aria-label="Loading approvals">
                   {Array.from({ length: 3 }).map((_, index) => (
-                    <div key={index} className="rounded-2xl border border-border-warm p-4">
+                    <div
+                      key={index}
+                      className="rounded-2xl border border-border-warm p-4"
+                    >
                       <Skeleton className="h-4 w-2/5" />
                       <Skeleton className="mt-3 h-3 w-4/5" />
                       <Skeleton className="mt-4 h-9 w-48" />
@@ -588,15 +631,23 @@ export default function Projects() {
                 </div>
               ) : isApprovalsError ? (
                 <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-10 text-center">
-                  <FlatIcon name="triangle-warning" className="text-xl text-red-500" />
+                  <FlatIcon
+                    name="triangle-warning"
+                    className="text-xl text-red-500"
+                  />
                   <p className="mt-2 text-xs font-semibold text-red-700">
                     Approvals could not be loaded. Please try again.
                   </p>
                 </div>
               ) : approvalQueue.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-brand-teal/20 bg-[#f8fbfb] px-5 py-12 text-center">
-                  <FlatIcon name="badge-check" className="text-2xl text-brand-teal/55" />
-                  <p className="mt-3 text-sm font-bold text-charcoal">No pending approvals</p>
+                  <FlatIcon
+                    name="badge-check"
+                    className="text-2xl text-brand-teal/55"
+                  />
+                  <p className="mt-3 text-sm font-bold text-charcoal">
+                    No pending approvals
+                  </p>
                   <p className="mt-1 text-[11px] text-muted-gray">
                     There are no requests waiting for an MD decision.
                   </p>
@@ -605,11 +656,15 @@ export default function Projects() {
                 <div className="space-y-3">
                   {approvalQueue.map((approval: any) => {
                     const payload = approval.payload || {};
-                    const isLinkedToSelectedProject = selectedProjectApprovals.some(
-                      (item: any) => item.id === approval.id,
-                    );
+                    const isLinkedToSelectedProject =
+                      selectedProjectApprovals.some(
+                        (item: any) => item.id === approval.id,
+                      );
                     return (
-                      <article key={approval.id} className="rounded-2xl border border-border-warm bg-white p-4 shadow-sm">
+                      <article
+                        key={approval.id}
+                        className="rounded-2xl border border-border-warm bg-white p-4 shadow-sm"
+                      >
                         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -617,41 +672,77 @@ export default function Projects() {
                                 Pending decision
                               </span>
                               <span className="text-[9px] font-semibold text-muted-gray">
-                                {formatLabel(approval.type || approval.requestType || "project request")}
+                                {formatLabel(
+                                  approval.type ||
+                                    approval.requestType ||
+                                    "project request",
+                                )}
                               </span>
                               <span className="rounded-full bg-slate-100 px-2 py-1 text-[9px] font-semibold text-slate-600">
-                                {isLinkedToSelectedProject ? "Selected project" : "Operations queue"}
+                                {isLinkedToSelectedProject
+                                  ? "Selected project"
+                                  : "Operations queue"}
                               </span>
                             </div>
                             <h4 className="mt-3 text-sm font-bold text-charcoal">
-                              {approval.title || payload.title || "Project approval request"}
+                              {approval.title ||
+                                payload.title ||
+                                "Project approval request"}
                             </h4>
                             <p className="mt-1.5 max-w-2xl text-[11px] leading-5 text-muted-gray">
-                              {approval.description || payload.description || payload.details || payload.note || "No additional request details were supplied."}
+                              {approval.description ||
+                                payload.description ||
+                                payload.details ||
+                                payload.note ||
+                                "No additional request details were supplied."}
                             </p>
                             <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[9px] font-semibold text-slate-500">
-                              <span>Requested by: {approval.requestedByName || approval.requestedBy || "Project team"}</span>
-                              <span>Client: {approval.clientName || approval.clientCode || payload.clientCode || "General operations"}</span>
+                              <span>
+                                Requested by:{" "}
+                                {approval.requestedByName ||
+                                  approval.requestedBy ||
+                                  "Project team"}
+                              </span>
+                              <span>
+                                Client:{" "}
+                                {approval.clientName ||
+                                  approval.clientCode ||
+                                  payload.clientCode ||
+                                  "General operations"}
+                              </span>
                             </div>
                           </div>
                           <div className="flex shrink-0 gap-2">
                             <Button
                               variant="outlined"
-                              disabled={approveItemMutation.isPending || rejectItemMutation.isPending}
+                              disabled={
+                                approveItemMutation.isPending ||
+                                rejectItemMutation.isPending
+                              }
                               onClick={() => {
                                 if (!decisionNote.trim()) {
-                                  toast.error("Add a decision note before rejecting this request.");
+                                  toast.error(
+                                    "Add a decision note before rejecting this request.",
+                                  );
                                   return;
                                 }
                                 rejectItemMutation.mutate(
-                                  { id: approval.id, reason: decisionNote.trim() },
+                                  {
+                                    id: approval.id,
+                                    reason: decisionNote.trim(),
+                                  },
                                   {
                                     onSuccess: () => {
-                                      toast.success("Approval request rejected.");
+                                      toast.success(
+                                        "Approval request rejected.",
+                                      );
                                       setDecisionNote("");
                                     },
                                     onError: (error: any) =>
-                                      toast.error(error?.message || "Unable to reject this approval."),
+                                      toast.error(
+                                        error?.message ||
+                                          "Unable to reject this approval.",
+                                      ),
                                   },
                                 );
                               }}
@@ -665,14 +756,22 @@ export default function Projects() {
                               disabled={rejectItemMutation.isPending}
                               onClick={() =>
                                 approveItemMutation.mutate(
-                                  { id: approval.id, reason: decisionNote.trim() || undefined },
+                                  {
+                                    id: approval.id,
+                                    reason: decisionNote.trim() || undefined,
+                                  },
                                   {
                                     onSuccess: () => {
-                                      toast.success("Approval request approved.");
+                                      toast.success(
+                                        "Approval request approved.",
+                                      );
                                       setDecisionNote("");
                                     },
                                     onError: (error: any) =>
-                                      toast.error(error?.message || "Unable to approve this request."),
+                                      toast.error(
+                                        error?.message ||
+                                          "Unable to approve this request.",
+                                      ),
                                   },
                                 )
                               }
@@ -690,8 +789,14 @@ export default function Projects() {
 
             {approvalQueue.length > 0 && !isApprovalsLoading && (
               <div className="border-t border-brand-teal/10 bg-[#fbfdfd] px-6 py-4">
-                <label htmlFor="project-decision-note" className="block text-[10px] font-bold text-charcoal">
-                  Decision note <span className="font-medium text-muted-gray">(required when rejecting)</span>
+                <label
+                  htmlFor="project-decision-note"
+                  className="block text-[10px] font-bold text-charcoal"
+                >
+                  Decision note{" "}
+                  <span className="font-medium text-muted-gray">
+                    (required when rejecting)
+                  </span>
                 </label>
                 <textarea
                   id="project-decision-note"
@@ -706,7 +811,6 @@ export default function Projects() {
           </div>
         </div>
       )}
-
       {/* Pop-up Overlay: Log land update */}
       {showLandUpdateModal && selectedProject && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/60 backdrop-blur-sm p-4">

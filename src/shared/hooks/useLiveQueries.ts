@@ -7,18 +7,24 @@ import * as adminApi from "../../api/endpoints/admin";
 // ==========================================
 // 1. Dashboard Query Hooks
 // ==========================================
-export function useDashboardKpis(enabled: boolean = true) {
+export function useDashboardKpis(
+  params?: dbApi.DashboardBriefingParams,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: ["dashboard-kpis"],
-    queryFn: () => dbApi.getDashboardKpis(),
+    queryKey: ["dashboard-kpis", params],
+    queryFn: () => dbApi.getDashboardKpis(params),
     enabled,
   });
 }
 
-export function useGlobalActivity(enabled: boolean = true) {
+export function useGlobalActivity(
+  params?: dbApi.DashboardBriefingParams,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: ["global-activity"],
-    queryFn: () => dbApi.getGlobalActivity(),
+    queryKey: ["global-activity", params],
+    queryFn: () => dbApi.getGlobalActivity(params),
     enabled,
   });
 }
@@ -147,10 +153,13 @@ export function useRejectItemMutation() {
 // ==========================================
 // 4. Accounts Query Hooks
 // ==========================================
-export function useAccountsKpis(enabled: boolean = true) {
+export function useAccountsKpis(
+  params?: acApi.TimeRangeParams,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: ["accounts-kpis"],
-    queryFn: () => acApi.getAccountsKpis(),
+    queryKey: ["accounts-kpis", params],
+    queryFn: () => acApi.getAccountsKpis(params),
     enabled,
   });
 }
@@ -174,18 +183,24 @@ export function useRiskRegister(enabled: boolean = true) {
   });
 }
 
-export function useAccountsCommissions(enabled: boolean = true) {
+export function useAccountsCommissions(
+  params?: acApi.TimeRangeParams,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: ["accounts-commissions"],
-    queryFn: () => acApi.getAccountsCommissions(),
+    queryKey: ["accounts-commissions", params],
+    queryFn: () => acApi.getAccountsCommissions(params),
     enabled,
   });
 }
 
-export function useAccountsRoiPayouts(enabled: boolean = true) {
+export function useAccountsRoiPayouts(
+  params?: acApi.TimeRangeParams,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: ["accounts-roi-payouts"],
-    queryFn: () => acApi.getAccountsRoiPayouts(),
+    queryKey: ["accounts-roi-payouts", params],
+    queryFn: () => acApi.getAccountsRoiPayouts(params),
     enabled,
   });
 }
@@ -193,26 +208,35 @@ export function useAccountsRoiPayouts(enabled: boolean = true) {
 // ==========================================
 // 5. Sales Query Hooks
 // ==========================================
-export function useSalesKpis(enabled: boolean = true) {
+export function useSalesKpis(
+  params?: acApi.TimeRangeParams,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: ["sales-kpis"],
-    queryFn: () => acApi.getSalesKpis(),
+    queryKey: ["sales-kpis", params],
+    queryFn: () => acApi.getSalesKpis(params),
     enabled,
   });
 }
 
-export function useSalesLeaderboard(enabled: boolean = true) {
+export function useSalesLeaderboard(
+  params?: acApi.TimeRangeParams,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: ["sales-leaderboard"],
-    queryFn: () => acApi.getSalesLeaderboard(),
+    queryKey: ["sales-leaderboard", params],
+    queryFn: () => acApi.getSalesLeaderboard(params),
     enabled,
   });
 }
 
-export function useSalesCommissions(enabled: boolean = true) {
+export function useSalesCommissions(
+  params?: acApi.TimeRangeParams,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: ["sales-commissions"],
-    queryFn: () => acApi.getSalesCommissions(),
+    queryKey: ["sales-commissions", params],
+    queryFn: () => acApi.getSalesCommissions(params),
     enabled,
   });
 }
@@ -220,10 +244,13 @@ export function useSalesCommissions(enabled: boolean = true) {
 // ==========================================
 // 6. Marketing Query Hooks
 // ==========================================
-export function useMarketingSummary(enabled: boolean = true) {
+export function useMarketingSummary(
+  params?: acApi.TimeRangeParams,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: ["marketing-summary"],
-    queryFn: () => acApi.getMarketingSummary(),
+    queryKey: ["marketing-summary", params],
+    queryFn: () => acApi.getMarketingSummary(params),
     enabled,
   });
 }
@@ -338,18 +365,24 @@ export function useReleaseSalesPayoutMutation() {
   });
 }
 
-export function useMarketingLeads(enabled: boolean = true) {
+export function useMarketingLeads(
+  params?: acApi.TimeRangeParams,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: ["marketing-leads"],
-    queryFn: () => acApi.getMarketingLeads(),
+    queryKey: ["marketing-leads", params],
+    queryFn: () => acApi.getMarketingLeads(params),
     enabled,
   });
 }
 
-export function useMarketingCampaigns(enabled: boolean = true) {
+export function useMarketingCampaigns(
+  params?: acApi.TimeRangeParams,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: ["marketing-campaigns"],
-    queryFn: () => acApi.getMarketingCampaigns(),
+    queryKey: ["marketing-campaigns", params],
+    queryFn: () => acApi.getMarketingCampaigns(params),
     enabled,
   });
 }
@@ -367,10 +400,13 @@ export function useCreateMarketingCampaignMutation() {
   });
 }
 
-export function useMarketingKpis(enabled: boolean = true) {
+export function useMarketingKpis(
+  params?: acApi.TimeRangeParams,
+  enabled: boolean = true,
+) {
   return useQuery({
-    queryKey: ["marketing-kpis"],
-    queryFn: () => acApi.getMarketingKpis(),
+    queryKey: ["marketing-kpis", params],
+    queryFn: () => acApi.getMarketingKpis(params),
     enabled,
   });
 }

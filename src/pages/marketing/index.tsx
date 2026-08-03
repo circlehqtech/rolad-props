@@ -2,7 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { useMockStore, type Client } from "../../store/mockStore";
-import type { TimeRangeFilterState } from "../../components/TimeRangePicker";
+import TimeRangePicker, {
+  type TimeRangeFilterState,
+  buildTimeRangeParams,
+} from "../../components/TimeRangePicker";
 import { toast } from "../../utils/toast";
 import {
   useMarketingLeads,
@@ -10,11 +13,15 @@ import {
   useCreateMarketingCampaignMutation,
   useMarketingKpis,
 } from "../../shared/hooks/useLiveQueries";
-import { formatNaira, toKoboInt } from "../../shared/money";
+import { formatNaira, toKoboInt, formatCompactNaira } from "../../shared/money";
 import Skeleton from "../../components/Skeleton";
 import Button from "../../components/Button";
 import PageHeader from "../../components/PageHeader";
-import { LiveChartGrid, LiveDonutChart, LiveMetricBars } from "../../components/LiveCharts";
+import {
+  LiveChartGrid,
+  LiveDonutChart,
+  LiveMetricBars,
+} from "../../components/LiveCharts";
 import {
   Megaphone,
   TrendingUp,
@@ -52,18 +59,21 @@ export default function MarketingDashboard() {
     logActivity,
   } = useMockStore();
 
-  const [timeRange] = useState<TimeRangeFilterState>({
+  const [timeRange, setTimeRange] = useState<TimeRangeFilterState>({
     range: "all",
   });
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [campaignInput, setCampaignInput] = useState("");
   const [agentInput, setAgentInput] = useState("");
+
+  const apiParams = buildTimeRangeParams(timeRange);
+
   const { data: marketingLeadsData, isLoading: isLeadsLoading } =
-    useMarketingLeads();
+    useMarketingLeads(apiParams);
   const { data: marketingCampaignsData, isLoading: isCampaignsLoading } =
-    useMarketingCampaigns();
+    useMarketingCampaigns(apiParams);
   const { data: marketingKpisData, isLoading: isKpisLoading } =
-    useMarketingKpis();
+    useMarketingKpis(apiParams);
   const createCampaignMutation = useCreateMarketingCampaignMutation();
   const [showLeadGenDrawer, setShowLeadGenDrawer] = useState(false);
 
@@ -254,7 +264,7 @@ export default function MarketingDashboard() {
 
   const formattedTotalSpend = marketingCampaignsData?.totalSpendKobo
     ? formatNaira(marketingCampaignsData.totalSpendKobo)
-    : `₦${totalCampaignSpend.toLocaleString()}`;
+    : `${formatCompactNaira(totalCampaignSpend)}`;
 
   const formattedAvgCac = marketingCampaignsData?.avgCostPerLeadKobo
     ? formatNaira(marketingCampaignsData.avgCostPerLeadKobo)
@@ -279,13 +289,19 @@ export default function MarketingDashboard() {
     ? formatNaira(marketingKpisData.averageCacKobo)
     : formattedAvgCac;
 
-  const landPropertyLeads = marketingKpisData?.leadBreakdown?.landProperty ??
+  const landPropertyLeads =
+    marketingKpisData?.leadBreakdown?.landProperty ??
     displayLeads.filter((lead: any) =>
-      String(lead.productType || "").toLowerCase().includes("land"),
+      String(lead.productType || "")
+        .toLowerCase()
+        .includes("land"),
     ).length;
-  const investmentLeads = marketingKpisData?.leadBreakdown?.investment ??
+  const investmentLeads =
+    marketingKpisData?.leadBreakdown?.investment ??
     displayLeads.filter((lead: any) =>
-      String(lead.productType || "").toLowerCase().includes("investment"),
+      String(lead.productType || "")
+        .toLowerCase()
+        .includes("investment"),
     ).length;
 
   const handleEditCampaignClick = (client: any) => {
@@ -311,16 +327,21 @@ export default function MarketingDashboard() {
         section="Marketing"
         title="Marketing & Lead Acquisition"
         description="Review campaign spend, lead sources and the clients converted by each channel."
-        actions={<div className="flex items-center gap-3">
-          <Button
-            variant="primary"
-            icon={<FileSpreadsheet className="w-4 h-4 text-white" />}
-            onClick={() => setShowLeadGenDrawer(true)}
-          >
-            Lead Summary
-          </Button>
-          {/* Time range hidden until the marketing endpoints accept range parameters. */}
-        </div>}
+        actions={
+          <div className="flex items-center gap-3 flex-wrap">
+            <TimeRangePicker
+              initialRange="all"
+              onChange={(rangeState) => setTimeRange(rangeState)}
+            />
+            <Button
+              variant="primary"
+              icon={<FileSpreadsheet className="w-4 h-4 text-white" />}
+              onClick={() => setShowLeadGenDrawer(true)}
+            >
+              Lead Summary
+            </Button>
+          </div>
+        }
       />
 
       {/* Campaign Stats Grid */}
@@ -398,7 +419,11 @@ export default function MarketingDashboard() {
           centerLabel="Enquiries"
           loading={isKpisLoading || isLeadsLoading}
           data={[
-            { label: "Land & property", value: landPropertyLeads, color: "#0b909c" },
+            {
+              label: "Land & property",
+              value: landPropertyLeads,
+              color: "#0e6b57",
+            },
             { label: "Investment", value: investmentLeads, color: "#ff7758" },
           ]}
         />

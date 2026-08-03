@@ -28,7 +28,8 @@ export function DashboardHero({ name, role, title }: DashboardHeroProps) {
             Hello, {firstName}
           </h2>
           <p className="mt-2 max-w-sm text-[12px] leading-5 text-white/76">
-            {title}. Track client movement, payments and estate delivery from one clear operational view.
+            {title}. Track client movement, payments and estate delivery from
+            one clear operational view.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -60,7 +61,8 @@ const makePolyline = (values: number[], width = 620, height = 190) => {
   const maximum = Math.max(...values, 1);
   return values
     .map((value, index) => {
-      const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width;
+      const x =
+        values.length === 1 ? width / 2 : (index / (values.length - 1)) * width;
       const y = height - (value / maximum) * (height - 28) - 12;
       return `${x},${y}`;
     })
@@ -76,7 +78,10 @@ export default function DashboardCharts({
   const lineValues = combined.map((point) => point.value);
   const maxStage = Math.max(...combined.map((point) => point.value), 1);
   const totalLand = land.reduce((sum, point) => sum + point.value, 0);
-  const totalInvestment = investment.reduce((sum, point) => sum + point.value, 0);
+  const totalInvestment = investment.reduce(
+    (sum, point) => sum + point.value,
+    0,
+  );
 
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
@@ -86,7 +91,9 @@ export default function DashboardCharts({
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-brand-teal">
               Portfolio movement
             </p>
-            <h2 className="mt-1 text-base font-bold text-charcoal">{primaryTitle}</h2>
+            <h2 className="mt-1 text-base font-bold text-charcoal">
+              {primaryTitle}
+            </h2>
           </div>
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#e7f5f6] text-brand-teal">
             <FlatIcon name="chart-line-up" className="text-[17px]" />
@@ -116,7 +123,7 @@ export default function DashboardCharts({
               <polyline
                 points={makePolyline(lineValues)}
                 fill="none"
-                stroke="#0b909c"
+                stroke="#0e6b57"
                 strokeWidth="4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -141,7 +148,11 @@ export default function DashboardCharts({
             </svg>
             <div className="grid grid-cols-4 gap-2 border-t border-slate-100 pt-3 text-center text-[9px] text-muted-gray sm:grid-cols-6">
               {combined.slice(0, 6).map((point) => (
-                <span key={point.label} className="truncate" title={point.label}>
+                <span
+                  key={point.label}
+                  className="truncate"
+                  title={point.label}
+                >
                   {point.label}
                 </span>
               ))}
@@ -163,25 +174,39 @@ export default function DashboardCharts({
             </h2>
           </div>
           <div className="flex gap-3 text-[10px] font-semibold text-muted-gray">
-            <span><b className="text-charcoal">{totalLand}</b> Land</span>
-            <span><b className="text-charcoal">{totalInvestment}</b> Investment</span>
+            <span>
+              <b className="text-charcoal">{totalLand}</b> Land
+            </span>
+            <span>
+              <b className="text-charcoal">{totalInvestment}</b> Investment
+            </span>
           </div>
         </div>
 
         {combined.length > 0 ? (
           <div className="mt-6 space-y-4">
             {combined.slice(0, 7).map((point, index) => (
-              <div key={`${point.label}-${index}`} className="grid grid-cols-[120px_1fr_28px] items-center gap-3">
-                <span className="truncate text-[10px] font-semibold text-muted-gray" title={point.label}>
+              <div
+                key={`${point.label}-${index}`}
+                className="grid grid-cols-[120px_1fr_28px] items-center gap-3"
+              >
+                <span
+                  className="truncate text-[10px] font-semibold text-muted-gray"
+                  title={point.label}
+                >
                   {point.label}
                 </span>
                 <div className="h-2.5 overflow-hidden rounded-full bg-[#edf5f6]">
                   <div
                     className={`h-full rounded-full ${index % 3 === 1 ? "bg-brand-coral" : index % 3 === 2 ? "bg-brand-lime" : "bg-brand-teal"}`}
-                    style={{ width: `${Math.max(6, (point.value / maxStage) * 100)}%` }}
+                    style={{
+                      width: `${Math.max(6, (point.value / maxStage) * 100)}%`,
+                    }}
                   />
                 </div>
-                <span className="text-right text-[11px] font-bold text-charcoal">{point.value}</span>
+                <span className="text-right text-[11px] font-bold text-charcoal">
+                  {point.value}
+                </span>
               </div>
             ))}
           </div>
@@ -197,7 +222,10 @@ function ChartEmptyState() {
   return (
     <div className="mt-5 grid h-[220px] place-items-center rounded-xl border border-dashed border-brand-teal/15 bg-[#f8fbfb] text-center">
       <div>
-        <FlatIcon name="chart-histogram" className="text-2xl text-brand-teal/45" />
+        <FlatIcon
+          name="chart-histogram"
+          className="text-2xl text-brand-teal/45"
+        />
         <p className="mt-2 text-[11px] font-semibold text-muted-gray">
           Chart data will appear when portfolio records are available.
         </p>

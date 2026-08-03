@@ -87,9 +87,16 @@ export interface AccountsKpis {
   dueInvestment?: string | number | null;
 }
 
+export interface TimeRangeParams {
+  timeRange?: string;
+  date?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
 // Accounts Fetchers
-export const getAccountsKpis = () =>
-  client.get<any, AccountsKpis>("/accounts/kpis");
+export const getAccountsKpis = (params?: TimeRangeParams) =>
+  client.get<any, AccountsKpis>("/accounts/kpis", { params });
 
 export interface AccountsLedgerParams {
   paymentStatus?: string;
@@ -137,11 +144,11 @@ export interface RoiPayoutsResponse {
   totalRoiPayoutKobo: string;
 }
 
-export const getAccountsCommissions = () =>
-  client.get<any, CommissionsResponse>("/accounts/commissions");
+export const getAccountsCommissions = (params?: TimeRangeParams) =>
+  client.get<any, CommissionsResponse>("/accounts/commissions", { params });
 
-export const getAccountsRoiPayouts = () =>
-  client.get<any, RoiPayoutsResponse>("/accounts/roi-payouts");
+export const getAccountsRoiPayouts = (params?: TimeRangeParams) =>
+  client.get<any, RoiPayoutsResponse>("/accounts/roi-payouts", { params });
 
 // Sales Fetchers
 export interface SalesKpisResponse {
@@ -181,17 +188,17 @@ export interface SalesCommissionsResponse {
   totalPaidKobo?: string;
 }
 
-export const getSalesKpis = () =>
-  client.get<any, SalesKpisResponse>("/sales/kpis");
+export const getSalesKpis = (params?: TimeRangeParams) =>
+  client.get<any, SalesKpisResponse>("/sales/kpis", { params });
 
-export const getSalesLeaderboard = () =>
-  client.get<any, { data: SalesLeaderboardRow[] }>("/sales/leaderboard");
+export const getSalesLeaderboard = (params?: TimeRangeParams) =>
+  client.get<any, { data: SalesLeaderboardRow[] }>("/sales/leaderboard", { params });
 
-export const getSalesCommissions = () =>
-  client.get<any, SalesCommissionsResponse>("/sales/commissions");
+export const getSalesCommissions = (params?: TimeRangeParams) =>
+  client.get<any, SalesCommissionsResponse>("/sales/commissions", { params });
 
-export const getMarketingSummary = () =>
-  client.get<any, MarketingSummary>("/marketing/summary");
+export const getMarketingSummary = (params?: TimeRangeParams) =>
+  client.get<any, MarketingSummary>("/marketing/summary", { params });
 
 // Accounts Audits (§8/§9)
 export type AccountsAuditType =
@@ -434,9 +441,9 @@ export interface MarketingLeadsResponse {
   investmentCount: number;
 }
 
-export const getMarketingLeads = async () => {
+export const getMarketingLeads = async (params?: TimeRangeParams) => {
   try {
-    return await client.get<any, MarketingLeadsResponse>("/marketing/leads");
+    return await client.get<any, MarketingLeadsResponse>("/marketing/leads", { params });
   } catch (err: any) {
     if (err?.statusCode === 404) {
       console.warn("[MISSING ENDPOINT] GET /marketing/leads for Marketing Lead Gen Summary");
@@ -483,9 +490,9 @@ export interface CreateCampaignPayload {
   notes?: string;
 }
 
-export const getMarketingCampaigns = async () => {
+export const getMarketingCampaigns = async (params?: TimeRangeParams) => {
   try {
-    return await client.get<any, MarketingCampaignsResponse>("/marketing/campaigns");
+    return await client.get<any, MarketingCampaignsResponse>("/marketing/campaigns", { params });
   } catch (err: any) {
     if (err?.statusCode === 404) {
       console.warn("[MISSING ENDPOINT] GET /marketing/campaigns for Marketing Campaigns Timeline");
@@ -518,9 +525,9 @@ export interface MarketingKpisResponse {
   averageCacKobo: string;
 }
 
-export const getMarketingKpis = async () => {
+export const getMarketingKpis = async (params?: TimeRangeParams) => {
   try {
-    return await client.get<any, MarketingKpisResponse>("/marketing/kpis");
+    return await client.get<any, MarketingKpisResponse>("/marketing/kpis", { params });
   } catch (err: any) {
     if (err?.statusCode === 404) {
       console.warn("[MISSING ENDPOINT] GET /marketing/kpis for Marketing KPIs");

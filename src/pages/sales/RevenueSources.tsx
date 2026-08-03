@@ -12,8 +12,12 @@ import {
   useAccountRevenue,
   useAccountsRevenue,
 } from "../../shared/hooks/useLiveQueries";
-import { toNaira } from "../../shared/money";
-import { LiveChartGrid, LiveDonutChart, LiveMetricBars } from "../../components/LiveCharts";
+import { toNaira, formatCompactNaira } from "../../shared/money";
+import {
+  LiveChartGrid,
+  LiveDonutChart,
+  LiveMetricBars,
+} from "../../components/LiveCharts";
 import {
   ArrowLeft,
   PieChart,
@@ -209,7 +213,10 @@ export default function RevenueSources() {
     if (!filterByTime(item.date)) return false;
 
     // 2. Source Type filter
-    if (sourceTypeFilter !== "all" && getSourceGroup(item.sourceType) !== sourceTypeFilter)
+    if (
+      sourceTypeFilter !== "all" &&
+      getSourceGroup(item.sourceType) !== sourceTypeFilter
+    )
       return false;
 
     // 3. Search query filter
@@ -242,19 +249,28 @@ export default function RevenueSources() {
     .reduce((sum: number, item: any) => sum + toNaira(item.amountKobo), 0);
 
   const revenueByNamedSource = Object.values(
-    filteredEntries.reduce((groups: Record<string, { label: string; value: number }>, item: any) => {
-      const label = item.sourceName || "Unattributed source";
-      groups[label] ||= { label, value: 0 };
-      groups[label].value += toNaira(item.amountKobo);
-      return groups;
-    }, {}),
+    filteredEntries.reduce(
+      (groups: Record<string, { label: string; value: number }>, item: any) => {
+        const label = item.sourceName || "Unattributed source";
+        groups[label] ||= { label, value: 0 };
+        groups[label].value += toNaira(item.amountKobo);
+        return groups;
+      },
+      {},
+    ),
   ).sort((a, b) => b.value - a.value);
 
   const formatSourceBadge = (sourceType: string) => {
     const isInternal = getSourceGroup(sourceType) === "internal";
     return (
-      <span className={`${isInternal ? "bg-brand-teal/10 text-brand-teal border-brand-teal/20" : "bg-indigo-50 text-indigo-700 border-indigo-200"} inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider`}>
-        {isInternal ? <Globe className="h-3 w-3" /> : <Building className="h-3 w-3" />}
+      <span
+        className={`${isInternal ? "bg-brand-teal/10 text-brand-teal border-brand-teal/20" : "bg-indigo-50 text-indigo-700 border-indigo-200"} inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider`}
+      >
+        {isInternal ? (
+          <Globe className="h-3 w-3" />
+        ) : (
+          <Building className="h-3 w-3" />
+        )}
         {isInternal ? "Internal Campaign" : "External Source"}
       </span>
     );
@@ -293,7 +309,7 @@ export default function RevenueSources() {
             Total Filtered Revenue
           </p>
           <p className="text-2xl font-extrabold text-brand-teal">
-            ₦{totalRevenue.toLocaleString()}
+            {formatCompactNaira(totalRevenue)}
           </p>
           <p className="text-[10px] text-muted-gray font-medium pt-1">
             {filteredEntries.length} total transaction logs
@@ -305,7 +321,7 @@ export default function RevenueSources() {
             Internal Campaign Revenue
           </p>
           <p className="text-2xl font-extrabold text-charcoal">
-            ₦{internalRevenue.toLocaleString()}
+            {formatCompactNaira(internalRevenue)}
           </p>
           <p className="text-[10px] text-cyan-700 font-semibold pt-1">
             Instagram, Google Ads, Email promos
@@ -317,13 +333,12 @@ export default function RevenueSources() {
             External / Partner Revenue
           </p>
           <p className="text-2xl font-extrabold text-indigo-900">
-            ₦{externalRevenue.toLocaleString()}
+            {formatCompactNaira(externalRevenue)}
           </p>
           <p className="text-[10px] text-indigo-600 font-semibold pt-1">
             Broker agencies & corporate partners
           </p>
         </div>
-
       </div>
 
       <LiveChartGrid>
@@ -334,8 +349,18 @@ export default function RevenueSources() {
           centerLabel="Attributed value"
           loading={isAuditsLoading}
           data={[
-            { label: "Internal sources", value: internalRevenue, displayValue: `₦${internalRevenue.toLocaleString()}`, color: "#0b909c" },
-            { label: "External sources", value: externalRevenue, displayValue: `₦${externalRevenue.toLocaleString()}`, color: "#ff7758" },
+            {
+              label: "Internal sources",
+              value: internalRevenue,
+              displayValue: `${formatCompactNaira(internalRevenue)}`,
+              color: "#0e6b57",
+            },
+            {
+              label: "External sources",
+              value: externalRevenue,
+              displayValue: `${formatCompactNaira(externalRevenue)}`,
+              color: "#ff7758",
+            },
           ]}
         />
         <LiveMetricBars
@@ -345,7 +370,7 @@ export default function RevenueSources() {
           loading={isAuditsLoading}
           data={revenueByNamedSource.slice(0, 6).map((source) => ({
             ...source,
-            displayValue: `₦${source.value.toLocaleString()}`,
+            displayValue: `${formatCompactNaira(source.value)}`,
           }))}
         />
       </LiveChartGrid>
@@ -403,7 +428,9 @@ export default function RevenueSources() {
         ) : filteredEntries.length === 0 ? (
           <div className="text-center py-16 text-xs italic text-muted-gray flex flex-col items-center justify-center space-y-2">
             <FileText className="w-10 h-10 text-muted-gray/30 mb-1" />
-            <p>No revenue sources matched your current filters or date range.</p>
+            <p>
+              No revenue sources matched your current filters or date range.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -466,7 +493,7 @@ export default function RevenueSources() {
                     {/* Revenue Amount */}
                     <td className="px-6 py-4">
                       <span className="font-extrabold text-brand-teal text-sm block">
-                        ₦{toNaira(item.amountKobo).toLocaleString()}
+                        ₦{toNaira(item.amountKobo)}
                       </span>
                     </td>
 
@@ -524,9 +551,15 @@ export default function RevenueSources() {
             ) : selectedRevenue ? (
               <dl className="mt-6 grid grid-cols-2 gap-3 text-xs">
                 {[
-                  ["Client", selectedRevenue.clientName || selectedRevenue.clientCode],
+                  [
+                    "Client",
+                    selectedRevenue.clientName || selectedRevenue.clientCode,
+                  ],
                   ["Client code", selectedRevenue.clientCode || "—"],
-                  ["Amount", `₦${toNaira(selectedRevenue.amountKobo).toLocaleString()}`],
+                  [
+                    "Amount",
+                    `₦${toNaira(selectedRevenue.amountKobo)}`,
+                  ],
                   ["Status", selectedRevenue.status],
                   ["Source type", selectedRevenue.sourceType || "—"],
                   ["Source", selectedRevenue.sourceName || "—"],
@@ -536,7 +569,10 @@ export default function RevenueSources() {
                       selectedRevenue.responsibleAgentId ||
                       "—",
                   ],
-                  ["Transaction reference", selectedRevenue.transactionRef || "—"],
+                  [
+                    "Transaction reference",
+                    selectedRevenue.transactionRef || "—",
+                  ],
                 ].map(([label, detail]) => (
                   <div
                     key={label}

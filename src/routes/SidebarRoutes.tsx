@@ -19,19 +19,19 @@ export const SidebarRoutes: SidebarRoute[] = [
     component: Dashboard,
   },
   {
-    name: "Client Portfolio",
+    name: "Clients",
     path: "/clients",
     iconName: "users-alt",
     component: Clients,
   },
   {
-    name: "Payments & Accounts",
+    name: "Accounts",
     path: "/accounts",
     iconName: "wallet",
     component: Accounts,
   },
   {
-    name: "Estates & Sites",
+    name: "Projects",
     path: "/projects",
     iconName: "building",
     component: Projects,
@@ -49,13 +49,13 @@ export const SidebarRoutes: SidebarRoute[] = [
     component: Management,
   },
   {
-    name: "Sales Pipeline",
+    name: "Sales",
     path: "/sales",
     iconName: "chart-histogram",
     component: SalesDashboard,
   },
   {
-    name: "Campaigns & Leads",
+    name: "Marketing",
     path: "/marketing",
     iconName: "megaphone",
     component: MarketingDashboard,

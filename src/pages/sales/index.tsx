@@ -1,20 +1,29 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { useMockStore, type CommissionItem } from "../../store/mockStore";
 import Button from "../../components/Button";
+import Modal from "../../components/Modal";
 import Skeleton from "../../components/Skeleton";
-import type { TimeRangeFilterState } from "../../components/TimeRangePicker";
+import TimeRangePicker, {
+  type TimeRangeFilterState,
+  buildTimeRangeParams,
+} from "../../components/TimeRangePicker";
 import PageHeader from "../../components/PageHeader";
-import { LiveChartGrid, LiveDonutChart, LiveMetricBars } from "../../components/LiveCharts";
+import {
+  LiveChartGrid,
+  LiveDonutChart,
+  LiveMetricBars,
+} from "../../components/LiveCharts";
 import { toast } from "../../utils/toast";
 import {
   useSalesKpis,
   useSalesLeaderboard,
   useSalesCommissions,
   useReleaseSalesPayoutMutation,
+  useAccountsRevenue,
 } from "../../shared/hooks/useLiveQueries";
-import { toKoboInt, toNaira } from "../../shared/money";
+import { toKoboInt, toNaira, formatCompactNaira } from "../../shared/money";
 import { formatLabel } from "../../utils/formatters";
 import {
   TrendingUp,
@@ -38,19 +47,27 @@ export default function SalesDashboard() {
   const { clients, commissions, actionCommission, logActivity } =
     useMockStore();
 
-  const [timeRange] = useState<TimeRangeFilterState>({
+  const [timeRange, setTimeRange] = useState<TimeRangeFilterState>({
     range: "all",
   });
   const [selectedSource, setSelectedSource] = useState<
     "Internal" | "External" | null
   >(null);
+  // modalSource drives the modal open/closed; selectedSource keeps the row highlight
+  const [modalSource, setModalSource] = useState<"Internal" | "External" | null>(null);
+  const internalRowRef = useRef<HTMLDivElement>(null);
+  const externalRowRef = useRef<HTMLDivElement>(null);
+
+  const apiParams = buildTimeRangeParams(timeRange);
 
   // Live Query Hooks for Sales Endpoints
-  const { data: salesKpisData, isLoading: isKpisLoading } = useSalesKpis();
+  const { data: salesKpisData, isLoading: isKpisLoading } = useSalesKpis(apiParams);
   const { data: salesLeaderboardData, isLoading: isLeaderboardLoading } =
-    useSalesLeaderboard();
+    useSalesLeaderboard(apiParams);
   const { data: salesCommissionsData, isLoading: isCommissionsLoading } =
-    useSalesCommissions();
+    useSalesCommissions(apiParams);
+  const { data: accountsRevenueData, isLoading: isAccountsRevenueLoading } =
+    useAccountsRevenue(apiParams);
   const releasePayoutMutation = useReleaseSalesPayoutMutation();
 
   // Date Filter helper
@@ -116,7 +133,7 @@ export default function SalesDashboard() {
     id: c.id,
     clientId: c.clientId,
     clientName: c.clientName || c.clientCode || "Client",
-    details: `Contract: ₦${toNaira(c.contractAmountKobo || "0").toLocaleString()} • Code: ${c.clientCode}`,
+    details: `Contract: ₦${toNaira(c.contractAmountKobo || "0")} • Code: ${c.clientCode}`,
     amount: toNaira(c.commissionAmountKobo || "0"),
     date: c.createdAt
       ? new Date(c.createdAt).toLocaleDateString()
@@ -140,10 +157,10 @@ export default function SalesDashboard() {
         onSuccess: () => {
           actionCommission(comm.id, "Approved");
           toast.success(
-            `Payout release request logged for ₦${comm.amount.toLocaleString()}!`,
+            `Payout release request logged for ${formatCompactNaira(comm.amount)}!`,
           );
           logActivity(
-            `Sales requested payout release for commission of ₦${comm.amount.toLocaleString()} (Client: ${comm.clientName})`,
+            `Sales requested payout release for commission of ${formatCompactNaira(comm.amount)} (Client: ${comm.clientName})`,
             user?.name || role,
           );
         },
@@ -157,7 +174,9 @@ export default function SalesDashboard() {
   };
 
   // Split Revenue Source: Campaign mapping details (Internal vs External origin)
-  const getRevenueOrigin = (details?: string) => {
+  const getRevenueOrigin = (details?: string, sourceType?: string) => {
+    if (sourceType === "internal_campaign") return "Internal";
+    if (sourceType === "external" || sourceType === "referral" || sourceType === "organic") return "External";
     if (!details) return "External";
     const intKeywords = [
       "summer",
@@ -174,26 +193,57 @@ export default function SalesDashboard() {
     return isInternal ? "Internal" : "External";
   };
 
-  const internalClients = filteredClients.filter(
-    (c: any) => getRevenueOrigin(c.campaignDetails) === "Internal",
-  );
-  const externalClients = filteredClients.filter(
-    (c: any) => getRevenueOrigin(c.campaignDetails) === "External",
-  );
+  const liveRevenueList = Array.isArray(accountsRevenueData)
+    ? accountsRevenueData
+    : (accountsRevenueData as any)?.data || [];
 
-  const internalComm = filteredCommissions
-    .filter((c: any) => {
-      const cl = clients.find((client: any) => client.id === c.clientId);
-      return getRevenueOrigin(cl?.campaignDetails) === "Internal";
-    })
-    .reduce((sum: number, c: any) => sum + c.amount, 0);
+  const mappedLiveRevenue = liveRevenueList.map((item: any) => ({
+    id: item.id || item.clientId,
+    clientId: item.clientId || item.id,
+    name: item.clientName || item.clientCode || "Client",
+    code: item.clientCode || "RC-000",
+    amount: toNaira(item.amountKobo || "0"),
+    sourceType: item.sourceType || "",
+    sourceName: item.sourceName || item.note || "Direct Attribution",
+    closureAgent: item.responsibleAgentName || "Closure Agent",
+    campaignDetails: item.sourceName || item.note || "Direct Attribution",
+  }));
 
-  const externalComm = filteredCommissions
-    .filter((c: any) => {
-      const cl = clients.find((client: any) => client.id === c.clientId);
-      return getRevenueOrigin(cl?.campaignDetails) === "External";
-    })
-    .reduce((sum: number, c: any) => sum + c.amount, 0);
+  const useLiveSourceData = mappedLiveRevenue.length > 0;
+
+  const internalClients = useLiveSourceData
+    ? mappedLiveRevenue.filter(
+        (c: any) => getRevenueOrigin(c.campaignDetails, c.sourceType) === "Internal",
+      )
+    : filteredClients.filter(
+        (c: any) => getRevenueOrigin(c.campaignDetails) === "Internal",
+      );
+
+  const externalClients = useLiveSourceData
+    ? mappedLiveRevenue.filter(
+        (c: any) => getRevenueOrigin(c.campaignDetails, c.sourceType) === "External",
+      )
+    : filteredClients.filter(
+        (c: any) => getRevenueOrigin(c.campaignDetails) === "External",
+      );
+
+  const internalComm = useLiveSourceData
+    ? internalClients.reduce((sum: number, c: any) => sum + c.amount, 0)
+    : filteredCommissions
+        .filter((c: any) => {
+          const cl = clients.find((client: any) => client.id === c.clientId);
+          return getRevenueOrigin(cl?.campaignDetails) === "Internal";
+        })
+        .reduce((sum: number, c: any) => sum + c.amount, 0);
+
+  const externalComm = useLiveSourceData
+    ? externalClients.reduce((sum: number, c: any) => sum + c.amount, 0)
+    : filteredCommissions
+        .filter((c: any) => {
+          const cl = clients.find((client: any) => client.id === c.clientId);
+          return getRevenueOrigin(cl?.campaignDetails) === "External";
+        })
+        .reduce((sum: number, c: any) => sum + c.amount, 0);
 
   return (
     <div className="property-page space-y-6 pb-10 select-none">
@@ -201,16 +251,21 @@ export default function SalesDashboard() {
         section="Sales"
         title="Sales & Commission Hub"
         description="Trace sales conversions, earnings matrix distributions, and referral payouts."
-        actions={<div className="flex items-center gap-3 flex-wrap">
-          <Button
-            variant="primary"
-            icon={<PieChart className="w-4 h-4 text-white" />}
-            onClick={() => navigate("/sales/revenue-sources")}
-          >
-            View Revenue Sources
-          </Button>
-          {/* Time range hidden until the sales KPI endpoints accept range parameters. */}
-        </div>}
+        actions={
+          <div className="flex items-center gap-3 flex-wrap">
+            <TimeRangePicker
+              initialRange="all"
+              onChange={(rangeState) => setTimeRange(rangeState)}
+            />
+            <Button
+              variant="primary"
+              icon={<PieChart className="w-4 h-4 text-white" />}
+              onClick={() => navigate("/sales/revenue-sources")}
+            >
+              View Revenue Sources
+            </Button>
+          </div>
+        }
       />
 
       {/* Earnings Breakdown Matrix (Live API KPIs) */}
@@ -223,7 +278,7 @@ export default function SalesDashboard() {
             <Skeleton className="h-9 w-40 mt-2" />
           ) : (
             <p className="text-3xl font-bold text-charcoal mt-2 tracking-tight">
-              ₦{collectedRevenue.toLocaleString()}
+              {formatCompactNaira(collectedRevenue)}
             </p>
           )}
           <div className="text-brand-olive text-xs font-semibold flex items-center gap-1 mt-4">
@@ -240,7 +295,7 @@ export default function SalesDashboard() {
             <Skeleton className="h-9 w-40 mt-2" />
           ) : (
             <p className="text-3xl font-bold text-brand-teal mt-2 tracking-tight">
-              ₦{awaitingClearance.toLocaleString()}
+              {formatCompactNaira(awaitingClearance)}
             </p>
           )}
           <div className="text-brand-teal text-xs font-semibold flex items-center gap-1 mt-4">
@@ -275,30 +330,131 @@ export default function SalesDashboard() {
           centerLabel="Revenue value"
           loading={isKpisLoading}
           data={[
-            { label: "Collected revenue", value: collectedRevenue, displayValue: `₦${collectedRevenue.toLocaleString()}`, color: "#0b909c" },
-            { label: "Awaiting clearance", value: awaitingClearance, displayValue: `₦${awaitingClearance.toLocaleString()}`, color: "#ff7758" },
+            {
+              label: "Collected revenue",
+              value: collectedRevenue,
+              displayValue: `${formatCompactNaira(collectedRevenue)}`,
+              color: "#0e6b57",
+            },
+            {
+              label: "Awaiting clearance",
+              value: awaitingClearance,
+              displayValue: `${formatCompactNaira(awaitingClearance)}`,
+              color: "#ff7758",
+            },
           ]}
         />
-        <LiveMetricBars
-          eyebrow="Team performance"
-          title="Closed value by sales adviser"
-          description="Compare the live closed value attributed to the leading sales advisers."
-          loading={isLeaderboardLoading}
-          icon="chart-line-up"
-          data={leaderboardList.slice(0, 5).map((agent: any) => {
-            const value = toNaira(agent.closedAmountKobo || agent.paidAmountKobo || "0");
-            return {
-              label: `${agent.firstName || ""} ${agent.lastName || ""}`.trim() || "Sales adviser",
-              value,
-              displayValue: `₦${value.toLocaleString()}`,
-            };
-          })}
-        />
+
+        {/* Revenue Sources Partition — moved to Row 2, with ChartShell-matching header chrome */}
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 space-y-4">
+          {/* Header: matches ChartShell eyebrow + Live badge + icon-in-circle */}
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-brand-teal">
+                  Revenue sources
+                </span>
+                <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{" "}
+                  Live
+                </span>
+              </div>
+              <h2 className="mt-1 text-base font-bold text-slate-900">
+                Revenue Sources Partition
+              </h2>
+              <p className="mt-1 max-w-lg text-[11px] leading-5 text-slate-500">
+                Segregate referred income pipelines by campaigns (Internal) vs
+                Broker referrals (External) channels.
+              </p>
+            </div>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-teal/8 text-brand-teal">
+              <PieChart className="w-4 h-4" />
+            </span>
+          </div>
+
+          <Button
+            variant="secondary"
+            onClick={() => navigate("/sales/revenue-sources")}
+            className="w-full bg-brand-teal/10 text-brand-teal hover:bg-brand-teal/20 border-none font-bold text-xs py-2 rounded-lg cursor-pointer"
+          >
+            Open Full Revenue Sources
+          </Button>
+
+          <div className="space-y-3">
+            {/* Internal Origin Row — click selects + opens modal */}
+            <div
+              ref={internalRowRef}
+              onClick={() => {
+                setSelectedSource("Internal");
+                setModalSource("Internal");
+              }}
+              className={`p-3.5 border rounded-lg cursor-pointer transition-all ${
+                selectedSource === "Internal"
+                  ? "bg-brand-teal/5 border-brand-teal shadow-sm"
+                  : "border-border-warm hover:bg-neutral-50/50"
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-xs text-charcoal">
+                  Internal Campaign Sources
+                </span>
+                {isAccountsRevenueLoading ? (
+                  <Skeleton className="h-4 w-14" />
+                ) : (
+                  <span className="text-xs font-bold text-brand-teal">
+                    {formatCompactNaira(internalComm)}
+                  </span>
+                )}
+              </div>
+              <p className="text-[9px] text-muted-gray mt-1">
+                {isAccountsRevenueLoading ? (
+                  <Skeleton className="h-3 w-20" />
+                ) : (
+                  `${internalClients.length} referred directories`
+                )}
+              </p>
+            </div>
+
+            {/* External Origin Row — click selects + opens modal */}
+            <div
+              ref={externalRowRef}
+              onClick={() => {
+                setSelectedSource("External");
+                setModalSource("External");
+              }}
+              className={`p-3.5 border rounded-lg cursor-pointer transition-all ${
+                selectedSource === "External"
+                  ? "bg-brand-teal/5 border-brand-teal shadow-sm"
+                  : "border-border-warm hover:bg-neutral-50/50"
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <span className="font-bold text-xs text-charcoal">
+                  External Referral channels
+                </span>
+                {isAccountsRevenueLoading ? (
+                  <Skeleton className="h-4 w-14" />
+                ) : (
+                  <span className="text-xs font-bold text-charcoal">
+                    {formatCompactNaira(externalComm)}
+                  </span>
+                )}
+              </div>
+              <p className="text-[9px] text-muted-gray mt-1">
+                {isAccountsRevenueLoading ? (
+                  <Skeleton className="h-3 w-20" />
+                ) : (
+                  `${externalClients.length} referred directories`
+                )}
+              </p>
+            </div>
+          </div>
+        </section>
       </LiveChartGrid>
 
-      {/* Split: Commission Audit Dashboard and Revenue Source Dashboard */}
+      {/* Split: Commission Audit Dashboard and Team Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Commission Audit Table */}
+        {/* Commission Audit Table — untouched */}
         <div className="lg:col-span-2 bg-white border border-border-warm rounded-lg shadow-sm overflow-hidden flex flex-col justify-between">
           <div>
             <div className="px-6 py-4 border-b border-border-warm bg-neutral-50/50 flex justify-between items-center">
@@ -365,7 +521,7 @@ export default function SalesDashboard() {
                               </span>
                             </td>
                             <td className="px-6 py-3.5 font-bold">
-                              ₦{comm.amount.toLocaleString()}
+                              {formatCompactNaira(comm.amount)}
                             </td>
                             <td className="px-6 py-3.5 text-muted-gray font-mono text-[11px]">
                               {comm.date}
@@ -405,26 +561,46 @@ export default function SalesDashboard() {
               </div>
             )}
           </div>
+        </div>
 
-          {/* Sales Leaderboard Section */}
+        {/* Team Performance — moved to Row 3, right column */}
+        <div className="flex flex-col gap-4">
+          <LiveMetricBars
+            eyebrow="Team performance"
+            title="Closed value by sales adviser"
+            description="Compare the live closed value attributed to the leading sales advisers."
+            loading={isLeaderboardLoading}
+            icon="chart-line-up"
+            data={leaderboardList.slice(0, 5).map((agent: any) => {
+              const value = toNaira(
+                agent.closedAmountKobo || agent.paidAmountKobo || "0",
+              );
+              return {
+                label:
+                  `${agent.firstName || ""} ${agent.lastName || ""}`.trim() ||
+                  "Sales adviser",
+                value,
+                displayValue: `${formatCompactNaira(value)}`,
+              };
+            })}
+          />
+
+          {/* Sales Leaderboard cards */}
           {isLeaderboardLoading ? (
-            <div className="border-t border-border-warm bg-neutral-50/20 p-6 space-y-4">
+            <div className="bg-white border border-border-warm rounded-lg p-5 space-y-3">
               <Skeleton className="h-4 w-40" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-              </div>
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
             </div>
           ) : leaderboardList.length > 0 ? (
-            <div className="border-t border-border-warm bg-neutral-50/20 p-6 space-y-4">
+            <div className="bg-white border border-border-warm rounded-lg p-5 space-y-4">
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-amber-500" />
                 <h3 className="font-serif text-sm font-bold text-brand-teal">
                   Sales Officer Leaderboard
                 </h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="space-y-2">
                 {leaderboardList.map((staff: any) => (
                   <div
                     key={staff.staffId}
@@ -449,19 +625,17 @@ export default function SalesDashboard() {
                       <p>
                         Closed Vol:{" "}
                         <strong className="text-brand-teal">
-                          ₦
-                          {toNaira(
-                            staff.closedAmountKobo || "0",
-                          ).toLocaleString()}
+                          {formatCompactNaira(
+                            toNaira(staff.closedAmountKobo || "0"),
+                          )}
                         </strong>
                       </p>
                       <p>
                         Paid Vol:{" "}
                         <strong className="text-brand-olive">
-                          ₦
-                          {toNaira(
-                            staff.paidAmountKobo || "0",
-                          ).toLocaleString()}
+                          {formatCompactNaira(
+                            toNaira(staff.paidAmountKobo || "0"),
+                          )}
                         </strong>
                       </p>
                     </div>
@@ -471,115 +645,54 @@ export default function SalesDashboard() {
             </div>
           ) : null}
         </div>
-
-        {/* View Revenue Source Dashboard partition */}
-        <div className="bg-white border border-border-warm rounded-lg p-6 shadow-sm space-y-5">
-          <div className="flex items-center gap-2 pb-2 border-b border-border-warm/60">
-            <PieChart className="w-5 h-5 text-brand-teal" />
-            <h2 className="font-serif text-base font-bold text-brand-teal">
-              Revenue Sources Partition
-            </h2>
-          </div>
-          <p className="text-[11px] text-muted-gray leading-normal">
-            Segregate referred income pipelines by campaigns (Internal) vs
-            Broker referrals (External) channels.
-          </p>
-
-          <Button
-            variant="secondary"
-            onClick={() => navigate("/sales/revenue-sources")}
-            className="w-full bg-brand-teal/10 text-brand-teal hover:bg-brand-teal/20 border-none font-bold text-xs py-2 rounded-lg cursor-pointer"
-          >
-            Open Full Revenue Sources Console →
-          </Button>
-
-          <div className="space-y-3">
-            {/* Internal Origin Row */}
-            <div
-              onClick={() =>
-                setSelectedSource(
-                  selectedSource === "Internal" ? null : "Internal",
-                )
-              }
-              className={`p-3.5 border rounded-lg cursor-pointer transition-all ${
-                selectedSource === "Internal"
-                  ? "bg-brand-teal/5 border-brand-teal shadow-sm"
-                  : "border-border-warm hover:bg-neutral-50/50"
-              }`}
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-xs text-charcoal">
-                  Internal Campaign Sources
-                </span>
-                <span className="text-xs font-bold text-brand-teal">
-                  ₦{internalComm.toLocaleString()}
-                </span>
-              </div>
-              <p className="text-[9px] text-muted-gray mt-1">
-                {internalClients.length} referred directories
-              </p>
-            </div>
-
-            {/* External Origin Row */}
-            <div
-              onClick={() =>
-                setSelectedSource(
-                  selectedSource === "External" ? null : "External",
-                )
-              }
-              className={`p-3.5 border rounded-lg cursor-pointer transition-all ${
-                selectedSource === "External"
-                  ? "bg-brand-teal/5 border-brand-teal shadow-sm"
-                  : "border-border-warm hover:bg-neutral-50/50"
-              }`}
-            >
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-xs text-charcoal">
-                  External Referral channels
-                </span>
-                <span className="text-xs font-bold text-charcoal">
-                  ₦{externalComm.toLocaleString()}
-                </span>
-              </div>
-              <p className="text-[9px] text-muted-gray mt-1">
-                {externalClients.length} referred directories
-              </p>
-            </div>
-          </div>
-
-          {/* Deep-link referral list */}
-          {selectedSource && (
-            <div className="pt-2 border-t border-border-warm/60 space-y-2.5 animate-fade-in max-h-45 overflow-y-auto pr-1">
-              <span className="text-[9px] font-bold text-muted-gray uppercase block tracking-wider">
-                Select Client to view Profile:
-              </span>
-              <div className="space-y-1.5">
-                {(selectedSource === "Internal"
-                  ? internalClients
-                  : externalClients
-                ).map((c: any) => (
-                  <div
-                    key={c.id}
-                    onClick={() => navigate(`/clients/${c.id}`)}
-                    className="p-2 border border-border-warm hover:border-brand-teal/40 rounded flex justify-between items-center cursor-pointer transition-colors group bg-neutral-50/30 font-semibold"
-                  >
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-bold text-charcoal group-hover:text-brand-teal transition-colors">
-                        Client: {c.name}
-                      </span>
-                      <span className="text-[9px] text-brand-teal font-bold mt-0.5">
-                        Agent: {c.closureAgent || "No Agent"} • Source:{" "}
-                        {c.campaignDetails || "Direct"}
-                      </span>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-muted-gray group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
+      {/* Revenue source client-list modal */}
+      <Modal
+        open={modalSource !== null}
+        onClose={() => setModalSource(null)}
+        title={
+          modalSource === "Internal"
+            ? "Internal Campaign Sources — clients"
+            : "External Referral channels — clients"
+        }
+        description="Select a client below to navigate to their profile."
+      >
+        {modalSource && (
+          <div className="space-y-2">
+            {(modalSource === "Internal" ? internalClients : externalClients)
+              .length === 0 ? (
+              <p className="text-sm text-muted-gray italic text-center py-4">
+                No clients in this category.
+              </p>
+            ) : (
+              (modalSource === "Internal"
+                ? internalClients
+                : externalClients
+              ).map((c: any) => (
+                <div
+                  key={c.id}
+                  onClick={() => {
+                    setModalSource(null);
+                    navigate(`/clients/${c.id}`);
+                  }}
+                  className="p-3 border border-border-warm hover:border-brand-teal/40 rounded-lg flex justify-between items-center cursor-pointer transition-colors group bg-neutral-50/30"
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[11px] font-bold text-charcoal group-hover:text-brand-teal transition-colors">
+                      Client: {c.name}
+                    </span>
+                    <span className="text-[9px] text-brand-teal font-bold">
+                      Agent: {c.closureAgent || "No Agent"} • Source:{" "}
+                      {c.campaignDetails || "Direct"}
+                    </span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-gray group-hover:translate-x-0.5 transition-transform shrink-0" />
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

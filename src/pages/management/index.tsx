@@ -17,7 +17,7 @@ import {
   useUpdateAdminMilestoneStatusMutation,
 } from "../../shared/hooks/useLiveQueries";
 import { useClientsList } from "../../features/clients/hooks/useClients";
-import { formatNaira, toKoboInt } from "../../shared/money";
+import { formatNaira, toKoboInt, formatCompactNaira } from "../../shared/money";
 import Button from "../../components/Button";
 import FlatIcon from "../../components/FlatIcon";
 import PageHeader from "../../components/PageHeader";
@@ -307,7 +307,7 @@ export default function Management() {
         clientId: data.clientOrProject,
         fuelAllowanceKobo: toKoboInt(fuel).toString(),
         materialAllocations: data.materialAllocations.join(", "),
-        note: `Allocated fuel allowance of ₦${fuel.toLocaleString()} and materials`,
+        note: `Allocated fuel allowance of ${formatCompactNaira(fuel)} and materials`,
       },
       {
         onSuccess: () => {

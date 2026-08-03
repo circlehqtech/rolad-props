@@ -10,7 +10,10 @@ import {
 import Button from "../../components/Button";
 import Select from "../../components/Select";
 import KpiCard from "../../components/KpiCard";
-import type { TimeRangeFilterState } from "../../components/TimeRangePicker";
+import TimeRangePicker, {
+  type TimeRangeFilterState,
+  buildTimeRangeParams,
+} from "../../components/TimeRangePicker";
 import PageHeader from "../../components/PageHeader";
 import {
   LiveChartGrid,
@@ -18,43 +21,54 @@ import {
   LiveMetricBars,
 } from "../../components/LiveCharts";
 import { toast } from "../../utils/toast";
+import { formatCompactNaira, toKoboInt } from "../../shared/money";
 import {
   useAccountsKpis,
   useAccountsCommissions,
   useAccountsRoiPayouts,
   useAccountsLedger,
+  useMarketingCampaigns,
+  useAccountsRevenue,
   useAccountsAudits,
-  useLogAccountsAuditMutation,
   useLogAccountPaymentMutation,
   useLogAccountCommissionMutation,
   useLogAccountRoiMutation,
   useLogAccountRevenueMutation,
   useUpdateAccountAuditStatusMutation,
-  useMarketingCampaigns,
-  useAccountsRevenue,
 } from "../../shared/hooks/useLiveQueries";
 import { useClientsList } from "../../features/clients/hooks/useClients";
-import { toNaira, toKoboInt } from "../../shared/money";
-import Skeleton from "../../components/Skeleton";
+import { toNaira } from "../../shared/money";
 import {
   TrendingUp,
   AlertCircle,
+  FileText,
   Clock,
-  DollarSign,
   Plus,
-  Lock,
-  ArrowLeftRight,
-  Search,
-  Upload,
+  DollarSign,
+  Download,
+  Filter,
+  CheckCircle2,
   X,
-  CheckCircle,
-  PieChart,
-  DollarSign as MoneyIcon,
+  CreditCard,
+  UserCheck,
+  Search,
+  Building,
+  ShieldCheck,
+  Award,
   ChevronRight,
   ClipboardList,
-  ShieldCheck,
-  Filter,
+  Eye,
+  PieChart,
+  Calendar,
+  Sparkles,
+  Upload,
+  CheckCircle,
+  Lock,
 } from "lucide-react";
+import MdBriefPanel from "../../components/MdBriefPanel";
+import FlatIcon from "../../components/FlatIcon";
+import Skeleton from "../../components/Skeleton";
+import { WalletIcon } from "@heroicons/react/24/solid";
 
 function getRevenueOrigin(details?: string) {
   if (!details) return "External";
@@ -74,7 +88,7 @@ function getRevenueOrigin(details?: string) {
     : "External";
 }
 
-export default function Accounts() {
+export default function AccountsCenter() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const role = user?.role || "MD / CEO";
@@ -91,13 +105,20 @@ export default function Accounts() {
     updateClientStage,
   } = useMockStore();
 
-  const { data: accountsKpis, isLoading: isKpisLoading } = useAccountsKpis();
+  const [timeRange, setTimeRange] = useState<TimeRangeFilterState>({
+    range: "all",
+  });
+
+  const apiParams = buildTimeRangeParams(timeRange);
+
+  const { data: accountsKpis, isLoading: isKpisLoading } =
+    useAccountsKpis(apiParams);
   const { data: commissionsData, isLoading: isCommissionsLoading } =
-    useAccountsCommissions();
+    useAccountsCommissions(apiParams);
   const { data: roiPayoutsData, isLoading: isRoiLoading } =
-    useAccountsRoiPayouts();
+    useAccountsRoiPayouts(apiParams);
   const { data: revenueSourceData, isLoading: isRevenueSourcesLoading } =
-    useAccountsRevenue({ timeRange: "all_time" });
+    useAccountsRevenue(apiParams);
 
   // Payment Ledger Filter and Sorting States (matching GET /accounts/ledger API)
   const [ledgerPaymentStatus, setLedgerPaymentStatus] = useState<string>("--");
@@ -146,10 +167,6 @@ export default function Accounts() {
       },
     ],
   }));
-
-  const [timeRange] = useState<TimeRangeFilterState>({
-    range: "all",
-  });
 
   // Accounts Audit Trail State & Mutations
   const [showAuditTrailDrawer, setShowAuditTrailDrawer] = useState(false);
@@ -275,7 +292,7 @@ export default function Accounts() {
         : comm.status === "approved"
           ? "Approved"
           : "Pending",
-    details: `Closure Agent: ${comm.closureAgentName || "Unknown"}. Contract value: ₦${toNaira(comm.contractAmountKobo || "0").toLocaleString()}`,
+    details: `Closure Agent: ${comm.closureAgentName || "Unknown"}. Contract value: ₦${toNaira(comm.contractAmountKobo || "0")}`,
     date: comm.createdAt ? comm.createdAt.split("T")[0] : "2026-07-20",
   }));
 
@@ -285,7 +302,7 @@ export default function Accounts() {
     clientId: roi.clientId,
     clientName: roi.clientName,
     amount: toNaira(roi.roiAmountKobo || "0"),
-    details: `ROI installment payout for ${roi.clientCode || "Investment"}. Contract value: ₦${toNaira(roi.contractAmountKobo || "0").toLocaleString()}`,
+    details: `ROI installment payout for ${roi.clientCode || "Investment"}. Contract value: ₦${toNaira(roi.contractAmountKobo || "0")}`,
     status: roi.status,
     date: roi.dueDate || "2026-07-21",
   }));
@@ -438,10 +455,10 @@ export default function Accounts() {
         {
           onSuccess: () => {
             toast.success(
-              `Onboarded client "${newClientName}" & recorded payment of ₦${amtVal.toLocaleString()} successfully.`,
+              `Onboarded client "${newClientName}" & recorded payment of ${formatCompactNaira(amtVal)} successfully.`,
             );
             logActivity(
-              `Direct onboarded client "${newClientName}" via ledger entry (₦${amtVal.toLocaleString()})`,
+              `Direct onboarded client "${newClientName}" via ledger entry (${formatCompactNaira(amtVal)})`,
               user?.name || role,
             );
             setShowLogPaymentDrawer(false);
@@ -510,10 +527,10 @@ export default function Accounts() {
           onSuccess: () => {
             logPayment(selectedClientId, payInvoiceId, amtVal);
             toast.success(
-              `Logged payment receipt of ₦${amtVal.toLocaleString()} for ${cName}`,
+              `Logged payment receipt of ${formatCompactNaira(amtVal)} for ${cName}`,
             );
             logActivity(
-              `Recorded payment receipt of ₦${amtVal.toLocaleString()} for client "${cName}" (Invoice: ${payInvoiceId})`,
+              `Recorded payment receipt of ${formatCompactNaira(amtVal)} for client "${cName}" (Invoice: ${payInvoiceId})`,
               user?.name || role,
             );
             setShowLogPaymentDrawer(false);
@@ -573,10 +590,10 @@ export default function Accounts() {
       {
         onSuccess: () => {
           toast.success(
-            `Successfully logged revenue of ₦${amtVal.toLocaleString()} under ${revSourceName}!`,
+            `Successfully logged revenue of ${formatCompactNaira(amtVal)} under ${revSourceName}!`,
           );
           logActivity(
-            `Logged revenue of ₦${amtVal.toLocaleString()} (${revSourceName} • ${revSourceType})`,
+            `Logged revenue of ${formatCompactNaira(amtVal)} (${revSourceName} • ${revSourceType})`,
             user?.name || role,
           );
           setShowLogRevenueDrawer(false);
@@ -626,10 +643,10 @@ export default function Accounts() {
             details: commDetails,
           });
           toast.success(
-            `Logged sales commission of ₦${amtVal.toLocaleString()} for client ${cName}`,
+            `Logged sales commission of ${formatCompactNaira(amtVal)} for client ${cName}`,
           );
           logActivity(
-            `Generated commission line item (₦${amtVal.toLocaleString()}) for client "${cName}"`,
+            `Generated commission line item (${formatCompactNaira(amtVal)}) for client "${cName}"`,
             user?.name || role,
           );
           setShowCommissionModal(false);
@@ -858,11 +875,16 @@ export default function Accounts() {
 
   return (
     <div className="property-page accounts-page space-y-6 pb-10 select-none relative">
-      {/* Time range stays hidden until the accounts summary endpoints accept it. */}
       <PageHeader
         section="Payments & Accounts"
         title="Payments & Accounts"
         description="Track client receipts, outstanding balances, commissions and investment payouts."
+        actions={
+          <TimeRangePicker
+            initialRange="all"
+            onChange={(rangeState) => setTimeRange(rangeState)}
+          />
+        }
       />
 
       {/* Prominent Billing Action Buttons Row */}
@@ -897,7 +919,7 @@ export default function Accounts() {
           {(role === "Accounts Lead" || role === "Sales Officer") && (
             <Button
               variant="secondary"
-              icon={<MoneyIcon className="w-4 h-4 text-charcoal" />}
+              icon={<WalletIcon className="w-4 h-4 text-charcoal" />}
               onClick={() => setShowCommissionModal(true)}
               className="bg-neutral-100 hover:bg-neutral-200 border-none font-bold text-xs py-2 px-4 rounded-lg cursor-pointer"
             >
@@ -977,7 +999,7 @@ export default function Accounts() {
                 Generated from internal newsletters, Instagram, Google Ads.
               </p>
               <p className="text-2xl font-extrabold text-brand-teal mt-4">
-                ₦{internalRevenue.toLocaleString()}
+                {formatCompactNaira(internalRevenue)}
               </p>
               <p className="text-[10px] text-brand-teal/60 font-bold mt-1 uppercase">
                 {internalClients.length} Clients referred
@@ -1000,7 +1022,7 @@ export default function Accounts() {
                 Generated via external corporate channels, broker agencies.
               </p>
               <p className="text-2xl font-extrabold text-charcoal mt-4">
-                ₦{externalRevenue.toLocaleString()}
+                {formatCompactNaira(externalRevenue)}
               </p>
               <p className="text-[10px] text-muted-gray/60 font-bold mt-1 uppercase">
                 {externalClients.length} Clients referred
@@ -1046,7 +1068,7 @@ export default function Accounts() {
                         </p>
                       </div>
                       <p className="shrink-0 text-sm font-extrabold text-charcoal">
-                        ₦{c.amount.toLocaleString()}
+                        {formatCompactNaira(c.amount)}
                       </p>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 pt-3 text-[9px] font-semibold text-slate-500">
@@ -1074,7 +1096,7 @@ export default function Accounts() {
             isKpisLoading ? (
               <Skeleton className="h-7 w-28" />
             ) : (
-              "₦" + pipelineDues.toLocaleString()
+              formatCompactNaira(pipelineDues)
             )
           }
           subtext="High-risk overdue balance"
@@ -1091,7 +1113,7 @@ export default function Accounts() {
             isKpisLoading ? (
               <Skeleton className="h-7 w-28" />
             ) : (
-              "₦" + totalRevenueCollected.toLocaleString()
+              formatCompactNaira(totalRevenueCollected)
             )
           }
           subtext="Cumulative settlement logs"
@@ -1106,7 +1128,7 @@ export default function Accounts() {
             isKpisLoading ? (
               <Skeleton className="h-7 w-28" />
             ) : (
-              "₦" + outstandingPayment.toLocaleString()
+              formatCompactNaira(outstandingPayment)
             )
           }
           subtext="Awaiting milestones"
@@ -1120,11 +1142,11 @@ export default function Accounts() {
             isKpisLoading ? (
               <Skeleton className="h-7 w-28" />
             ) : (
-              "₦" + outstandingCommission.toLocaleString()
+              formatCompactNaira(outstandingCommission)
             )
           }
           subtext="Unpaid agent referrals"
-          icon={<MoneyIcon className="w-4 h-4 text-brand-teal" />}
+          icon={<WalletIcon className="w-4 h-4 text-brand-teal" />}
         />
 
         <KpiCard
@@ -1134,7 +1156,7 @@ export default function Accounts() {
             isKpisLoading ? (
               <Skeleton className="h-7 w-28" />
             ) : (
-              "₦" + dueInvestment.toLocaleString()
+              formatCompactNaira(dueInvestment)
             )
           }
           subtext="Active portfolio maturities"
@@ -1152,25 +1174,25 @@ export default function Accounts() {
             {
               label: "Revenue collected",
               value: totalRevenueCollected,
-              displayValue: `₦${totalRevenueCollected.toLocaleString()}`,
-              color: "#0b909c",
+              displayValue: `${formatCompactNaira(totalRevenueCollected)}`,
+              color: "#0e6b57",
             },
             {
               label: "Outstanding payments",
               value: outstandingPayment,
-              displayValue: `₦${outstandingPayment.toLocaleString()}`,
+              displayValue: `${formatCompactNaira(outstandingPayment)}`,
               color: "#ff7758",
             },
             {
               label: "Pipeline dues",
               value: pipelineDues,
-              displayValue: `₦${pipelineDues.toLocaleString()}`,
+              displayValue: `${formatCompactNaira(pipelineDues)}`,
               color: "#c5a880",
             },
             {
               label: "Due investments",
               value: dueInvestment,
-              displayValue: `₦${dueInvestment.toLocaleString()}`,
+              displayValue: `${formatCompactNaira(dueInvestment)}`,
               color: "#34515b",
             },
           ]}
@@ -1185,19 +1207,19 @@ export default function Accounts() {
             {
               label: "Client payments",
               value: outstandingPayment,
-              displayValue: `₦${outstandingPayment.toLocaleString()}`,
+              displayValue: `${formatCompactNaira(outstandingPayment)}`,
               color: "#ff7758",
             },
             {
               label: "Agent commissions",
               value: outstandingCommission,
-              displayValue: `₦${outstandingCommission.toLocaleString()}`,
-              color: "#0b909c",
+              displayValue: `${formatCompactNaira(outstandingCommission)}`,
+              color: "#0e6b57",
             },
             {
               label: "Investment payouts",
               value: dueInvestment,
-              displayValue: `₦${dueInvestment.toLocaleString()}`,
+              displayValue: `${formatCompactNaira(dueInvestment)}`,
               color: "#c5a880",
             },
           ]}
@@ -1322,13 +1344,13 @@ export default function Accounts() {
                             {row.productType}
                           </td>
                           <td className="px-6 py-4 font-mono font-bold text-brand-olive">
-                            ₦{row.paidAmount.toLocaleString()}
+                            {formatCompactNaira(row.paidAmount)}
                           </td>
                           <td className="px-6 py-4 font-mono font-bold text-charcoal">
-                            ₦{row.outstandingAmount.toLocaleString()}
+                            {formatCompactNaira(row.outstandingAmount)}
                           </td>
                           <td className="px-6 py-4 font-mono font-bold text-status-missed">
-                            ₦{row.overdueAmount.toLocaleString()}
+                            {formatCompactNaira(row.overdueAmount)}
                           </td>
                           <td className="px-6 py-4">
                             {(() => {
@@ -1502,7 +1524,7 @@ export default function Accounts() {
 
             <div className="space-y-6 flex-1 pr-1">
               <div className="flex items-center gap-2 pb-3 border-b border-border-warm/60">
-                <MoneyIcon className="w-5 h-5 text-brand-teal" />
+                <WalletIcon className="w-5 h-5 text-brand-teal" />
                 <h3 className="font-serif text-lg font-bold text-brand-teal">
                   Log Payments
                 </h3>
@@ -1705,7 +1727,7 @@ export default function Accounts() {
                           ?.ledger.filter((l: any) => l.status !== "Paid")
                           .map((l: any) => ({
                             value: l.invoiceId,
-                            label: `${l.invoiceId} (₦${l.amount.toLocaleString()} - ${l.status})`,
+                            label: `${l.invoiceId} (${formatCompactNaira(l.amount)} - ${l.status})`,
                           })) || []),
                       ]}
                       value={payInvoiceId}
@@ -2180,7 +2202,8 @@ export default function Accounts() {
                         </p>
                         <div className="flex justify-between items-center pt-2 border-t border-border-warm/50 text-[10px] font-bold">
                           <span className="text-charcoal">
-                            Disbursement Amount: ₦{roi.amount.toLocaleString()}
+                            Disbursement Amount:{" "}
+                            {formatCompactNaira(roi.amount)}
                           </span>
                           <span className="text-muted-gray font-mono">
                             {roi.date}
@@ -2271,7 +2294,7 @@ export default function Accounts() {
                       </p>
                       <div className="flex justify-between items-center pt-2 border-t border-border-warm/50 text-[10px] font-bold">
                         <span className="text-charcoal">
-                          Payout Amount: ₦{comm.amount.toLocaleString()}
+                          Payout Amount: {formatCompactNaira(comm.amount)}
                         </span>
                         <span className="text-muted-gray font-mono">
                           {comm.date}
@@ -2359,10 +2382,7 @@ export default function Accounts() {
                     Total ROI Payout
                   </p>
                   <p className="text-xs font-bold text-brand-olive mt-0.5">
-                    ₦
-                    {toNaira(
-                      accountsAuditsData?.totalRoiPayoutKobo || "0",
-                    ).toLocaleString()}
+                    ₦{toNaira(accountsAuditsData?.totalRoiPayoutKobo || "0")}
                   </p>
                 </div>
                 <div className="p-2.5 bg-brand-teal/5 border border-brand-teal/20 rounded">
@@ -2373,7 +2393,7 @@ export default function Accounts() {
                     ₦
                     {toNaira(
                       accountsAuditsData?.totalCommissionReleaseKobo || "0",
-                    ).toLocaleString()}
+                    )}
                   </p>
                 </div>
                 <div className="p-2.5 bg-neutral-100 border border-border-warm rounded">
@@ -2381,10 +2401,7 @@ export default function Accounts() {
                     Adjustment
                   </p>
                   <p className="text-xs font-bold text-charcoal mt-0.5">
-                    ₦
-                    {toNaira(
-                      accountsAuditsData?.totalAdjustmentKobo || "0",
-                    ).toLocaleString()}
+                    ₦{toNaira(accountsAuditsData?.totalAdjustmentKobo || "0")}
                   </p>
                 </div>
               </div>
@@ -2453,7 +2470,7 @@ export default function Accounts() {
                         <span>
                           Amount:{" "}
                           <strong className="text-charcoal font-bold">
-                            ₦{toNaira(audit.amountKobo || "0").toLocaleString()}
+                            ₦{toNaira(audit.amountKobo || "0")}
                           </strong>
                         </span>
                         <span className="font-mono">
@@ -2597,7 +2614,7 @@ export default function Accounts() {
                   Settled Amount:
                 </span>
                 <span className="text-brand-olive font-extrabold text-sm">
-                  ₦{selectedReceiptRow.amount.toLocaleString()}
+                  {formatCompactNaira(selectedReceiptRow.amount)}
                 </span>
               </div>
               <div className="flex justify-between border-b border-neutral-100 pb-2">

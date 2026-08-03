@@ -95,12 +95,12 @@ export interface GlobalActivityResponse {
 }
 
 // Fetchers
-export const getDashboardKpis = () =>
-  client.get<any, DashboardKpis>("/dashboard/kpis");
+export const getDashboardKpis = (params?: DashboardBriefingParams) =>
+  client.get<any, DashboardKpis>("/dashboard/kpis", { params });
 
-export const getGlobalActivity = async () => {
+export const getGlobalActivity = async (params?: DashboardBriefingParams) => {
   try {
-    return await client.get<any, GlobalActivityResponse>("/dashboard/activity");
+    return await client.get<any, GlobalActivityResponse>("/dashboard/activity", { params });
   } catch (err: any) {
     if (err?.statusCode === 404) {
       console.warn("[MISSING ENDPOINT] GET /dashboard/activity for Global Activity Feed");

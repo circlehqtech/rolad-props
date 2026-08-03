@@ -8,11 +8,14 @@ import {
   useActionItems,
   useStageDistribution,
 } from "../../shared/hooks/useLiveQueries";
-import { toNaira } from "../../shared/money";
+import { toNaira, formatCompactNaira } from "../../shared/money";
 import Button from "../../components/Button";
 import KpiCard from "../../components/KpiCard";
 import MdBriefPanel from "../../components/MdBriefPanel";
-import type { TimeRangeFilterState } from "../../components/TimeRangePicker";
+import TimeRangePicker, {
+  type TimeRangeFilterState,
+  buildTimeRangeParams,
+} from "../../components/TimeRangePicker";
 import Skeleton from "../../components/Skeleton";
 import PageHeader from "../../components/PageHeader";
 import DashboardCharts, {
@@ -53,7 +56,7 @@ export default function Dashboard() {
   const approvals = mockStore.approvals;
   const activities = mockStore.activities;
 
-  const [timeRange] = useState<TimeRangeFilterState>({
+  const [timeRange, setTimeRange] = useState<TimeRangeFilterState>({
     range: "all",
   });
 
@@ -77,11 +80,16 @@ export default function Dashboard() {
 
   const isExecutive = isCEO || isAdmin;
 
+  // True when exactly 2 KPI cards are shown — triggers wider hero + stacked layout
+  const hasTwoKpis = isCS || isSales || isProjectManager || isMarketing;
+
+  const apiParams = buildTimeRangeParams(timeRange);
+
   // TanStack Query API calls (enabled based on role)
   const { data: kpiData, isLoading: isKpisLoading } =
-    useDashboardKpis(!isMarketing);
+    useDashboardKpis(apiParams, !isMarketing);
   const { data: activityData, isLoading: isActivityLoading } =
-    useGlobalActivity();
+    useGlobalActivity(apiParams);
   const { data: stageDistData } = useStageDistribution();
 
   // Fetch Action items queries
@@ -546,170 +554,174 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-page property-page space-y-6 pb-10 select-none">
-      {/* Dashboard time filter hidden until its KPI and activity endpoints support it. */}
       <PageHeader
         section="Dashboard"
         title={dashboardTitle()}
         description="A current view of clients, collections, documentation and property delivery."
+        actions={
+          <TimeRangePicker
+            initialRange="all"
+            onChange={(rangeState) => setTimeRange(rangeState)}
+          />
+        }
       />
 
-      <div className="dashboard-summary-grid">
+      <div className={`dashboard-summary-grid${hasTwoKpis ? " dashboard-summary-grid--two-kpi" : ""}`}>
         <DashboardHero
           name={user?.name || "Rolad team"}
           role={role}
           title={dashboardTitle()}
         />
-
         {/* KPI Cards Row (Filtered Dynamically by Role) */}
         <div className="dashboard-kpi-grid">
-        {/* All Roles show Active Portfolio Clients */}
-        <KpiCard
-          title="Active Portfolio Clients"
-          value={
-            isKpisLoading ? (
-              <Skeleton className="h-7 w-20" />
-            ) : (
-              activeClientsCount
-            )
-          }
-          subtext="Current property and investment clients"
-          icon={<Users className="w-5 h-5" />}
-        />
-
-        {/* CEO & Accounts: Gross Portfolio Value & Value at Risk */}
-        {(isCEO || isAccountsLead) && (
-          <>
-            <KpiCard
-              title="Gross Portfolio Value"
-              value={
-                isKpisLoading ? (
-                  <Skeleton className="h-7 w-28" />
-                ) : (
-                  "₦" + totalPortfolioValue.toLocaleString()
-                )
-              }
-              subtext="Value of active subscriptions"
-              icon={<DollarSign className="w-5 h-5" />}
-            />
-            <KpiCard
-              title="Value at Risk"
-              value={
-                isKpisLoading ? (
-                  <Skeleton className="h-7 w-28" />
-                ) : (
-                  "₦" + valueAtRisk.toLocaleString()
-                )
-              }
-              subtext="Outstanding overdue balances"
-              icon={<AlertCircle className="w-5 h-5 text-status-missed" />}
-              variant="risk"
-            />
-          </>
-        )}
-
-        {/* Pending Documents Checklist (CEO, Accounts & Admin) */}
-        {(isCEO || isAccountsLead || isAdmin) && (
+          {/* All Roles show Active Portfolio Clients */}
           <KpiCard
-            title="Outstanding Documentation"
+            title="Active Portfolio Clients"
             value={
               isKpisLoading ? (
-                <Skeleton className="h-7 w-16" />
+                <Skeleton className="h-7 w-20" />
               ) : (
-                pendingDocumentsCount
+                activeClientsCount
               )
             }
-            subtext="Files required to complete client records"
-            icon={<Clock className="w-5 h-5" />}
-            isProminent={isAdmin} // Prominent card style for Admin!
+            subtext="Portfolio clients"
+            icon={<Users className="w-5 h-5" />}
           />
-        )}
 
-        {/* ADMIN ADD: Needing Action Card */}
-        {isAdmin && (
-          <KpiCard
-            title="Records to Complete"
-            value={
-              isMissingDocsLoading ? (
-                <Skeleton className="h-7 w-16" />
-              ) : (
-                adminNeedingActionCount
-              )
-            }
-            subtext="Records with missing files"
-            icon={<AlertTriangle className="w-5 h-5 text-status-late" />}
-            variant="warning"
-            onClick={() => setActiveModal("admin-needing-action")}
-          />
-        )}
+          {/* CEO & Accounts: Gross Portfolio Value & Value at Risk */}
+          {(isCEO || isAccountsLead) && (
+            <>
+              <KpiCard
+                title="Gross Portfolio Value"
+                value={
+                  isKpisLoading ? (
+                    <Skeleton className="h-7 w-28" />
+                  ) : (
+                    formatCompactNaira(totalPortfolioValue)
+                  )
+                }
+                subtext="Active subscriptions"
+                icon={<DollarSign className="w-5 h-5" />}
+              />
+              <KpiCard
+                title="Value at Risk"
+                value={
+                  isKpisLoading ? (
+                    <Skeleton className="h-7 w-28" />
+                  ) : (
+                    formatCompactNaira(valueAtRisk)
+                  )
+                }
+                subtext="Overdue balances"
+                icon={<AlertCircle className="w-5 h-5 text-status-missed" />}
+                variant="risk"
+              />
+            </>
+          )}
 
-        {/* CUSTOMER SERVICE ADD: Clients Update Card */}
-        {isCS && (
-          <KpiCard
-            title="Client Follow-ups"
-            value={
-              isCsLoading ? (
-                <Skeleton className="h-7 w-16" />
-              ) : (
-                csClientsUpdateCount
-              )
-            }
-            subtext="Milestones requiring client contact"
-            icon={<PhoneCall className="w-5 h-5 text-brand-teal" />}
-            onClick={() => setActiveModal("cs-clients-update")}
-          />
-        )}
+          {/* Pending Documents Checklist (CEO, Accounts & Admin) */}
+          {(isCEO || isAccountsLead || isAdmin) && (
+            <KpiCard
+              title="Outstanding Documentation"
+              value={
+                isKpisLoading ? (
+                  <Skeleton className="h-7 w-16" />
+                ) : (
+                  pendingDocumentsCount
+                )
+              }
+              subtext="Pending documents"
+              icon={<Clock className="w-5 h-5" />}
+              isProminent={isAdmin}
+            />
+          )}
 
-        {/* SALES ADD: Update Required Card */}
-        {isSales && (
-          <KpiCard
-            title="Incomplete Sales Records"
-            value={
-              isSalesLoading ? (
-                <Skeleton className="h-7 w-16" />
-              ) : (
-                salesUpdateRequiredCount
-              )
-            }
-            subtext="Client details or payments to update"
-            icon={<FileWarning className="w-5 h-5 text-status-missed" />}
-            variant="risk"
-            onClick={() => setActiveModal("sales-update-required")}
-          />
-        )}
+          {/* ADMIN ADD: Needing Action Card */}
+          {isAdmin && (
+            <KpiCard
+              title="Records to Complete"
+              value={
+                isMissingDocsLoading ? (
+                  <Skeleton className="h-7 w-16" />
+                ) : (
+                  adminNeedingActionCount
+                )
+              }
+              subtext="Missing files"
+              icon={<AlertTriangle className="w-5 h-5 text-status-late" />}
+              variant="warning"
+              onClick={() => setActiveModal("admin-needing-action")}
+            />
+          )}
 
-        {/* PROJECT MANAGER ADD: Allocation Status Card */}
-        {isProjectManager && (
-          <KpiCard
-            title="Allocation Status"
-            value={
-              isPmLoading ? (
-                <Skeleton className="h-7 w-16" />
-              ) : (
-                projectAllocationCount
-              )
-            }
-            subtext="Ready or pending allocation"
-            icon={<MapPin className="w-5 h-5 text-brand-teal" />}
-            onClick={() => setActiveModal("project-allocation")}
-          />
-        )}
+          {/* CUSTOMER SERVICE ADD: Clients Update Card */}
+          {isCS && (
+            <KpiCard
+              title="Client Follow-ups"
+              value={
+                isCsLoading ? (
+                  <Skeleton className="h-7 w-16" />
+                ) : (
+                  csClientsUpdateCount
+                )
+              }
+              subtext="Pending follow-ups"
+              icon={<PhoneCall className="w-5 h-5 text-brand-teal" />}
+              onClick={() => setActiveModal("cs-clients-update")}
+            />
+          )}
 
-        {/* MARKETING ADD: Allocation Status Card */}
-        {isMarketing && (
-          <KpiCard
-            title="Allocation Status"
-            value={
-              isMktLoading ? (
-                <Skeleton className="h-7 w-16" />
-              ) : (
-                marketingAllocationCount
-              )
-            }
-            subtext="My leads pending allocation"
-            icon={<MapPin className="w-5 h-5 text-brand-teal" />}
-            onClick={() => setActiveModal("marketing-allocation")}
-          />
-        )}
+          {/* SALES ADD: Update Required Card */}
+          {isSales && (
+            <KpiCard
+              title="Incomplete Sales Records"
+              value={
+                isSalesLoading ? (
+                  <Skeleton className="h-7 w-16" />
+                ) : (
+                  salesUpdateRequiredCount
+                )
+              }
+              subtext="Incomplete records"
+              icon={<FileWarning className="w-5 h-5 text-status-missed" />}
+              variant="risk"
+              onClick={() => setActiveModal("sales-update-required")}
+            />
+          )}
+
+          {/* PROJECT MANAGER ADD: Allocation Status Card */}
+          {isProjectManager && (
+            <KpiCard
+              title="Allocation Status"
+              value={
+                isPmLoading ? (
+                  <Skeleton className="h-7 w-16" />
+                ) : (
+                  projectAllocationCount
+                )
+              }
+              subtext="Pending allocation"
+              icon={<MapPin className="w-5 h-5 text-brand-teal" />}
+              onClick={() => setActiveModal("project-allocation")}
+            />
+          )}
+
+          {/* MARKETING ADD: Allocation Status Card */}
+          {isMarketing && (
+            <KpiCard
+              title="Allocation Status"
+              value={
+                isMktLoading ? (
+                  <Skeleton className="h-7 w-16" />
+                ) : (
+                  marketingAllocationCount
+                )
+              }
+              subtext="Leads pending"
+              icon={<MapPin className="w-5 h-5 text-brand-teal" />}
+              onClick={() => setActiveModal("marketing-allocation")}
+            />
+          )}
         </div>
       </div>
 
@@ -735,19 +747,11 @@ export default function Dashboard() {
         }))}
       />
 
-      {isExecutive ? (
-        <MdBriefPanel
-          variant="embedded"
-          clients={clients}
-          approvals={approvals}
-        />
-      ) : (
-        <MdBriefPanel
-          variant="floating-button"
-          clients={clients}
-          approvals={approvals}
-        />
-      )}
+      <MdBriefPanel
+        variant="floating-button"
+        clients={clients}
+        approvals={approvals}
+      />
 
       {/* Recent Activity stream */}
       <div className="grid grid-cols-1 gap-5">
