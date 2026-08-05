@@ -59,9 +59,20 @@ export interface DashboardBriefingEnvelope {
 
 export interface NotificationItem {
   id: string;
-  message: string;
-  read: boolean;
+  type?: string;
+  title?: string;
+  message?: string;
+  targetType?: string;
+  targetId?: string;
+  read?: boolean;
+  isRead?: boolean;
+  readAt?: string | null;
   createdAt: string;
+}
+
+export interface NotificationsEnvelope {
+  data: NotificationItem[];
+  unreadCount?: number;
 }
 
 export interface ApprovalItem {
@@ -148,7 +159,7 @@ export const getDashboardBriefing = async (
 export const getBriefing = getDashboardBriefing;
 
 export const getNotifications = () =>
-  client.get<any, NotificationItem[]>("/notifications");
+  client.get<any, NotificationsEnvelope | NotificationItem[]>("/notifications");
 
 export const markNotificationRead = (id: string) =>
   client.post<any, any>(`/notifications/${id}/read`);

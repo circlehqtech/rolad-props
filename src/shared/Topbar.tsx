@@ -23,7 +23,11 @@ const Topbar = ({ toggleSidebar, isMobile }: TopbarProps) => {
   const notificationsList = Array.isArray(notificationsEnvelope)
     ? notificationsEnvelope
     : (notificationsEnvelope as any)?.data || [];
-  const unreadCount = notificationsList.filter((n: any) => !n.read).length;
+  const rawUnread = (notificationsEnvelope as any)?.unreadCount;
+  const unreadCount =
+    typeof rawUnread === "number"
+      ? rawUnread
+      : notificationsList.filter((n: any) => n.read === false || n.isRead === false || (!("read" in n) && !("isRead" in n))).length;
   const markReadMutation = useMarkNotificationReadMutation();
 
   return (
@@ -79,29 +83,45 @@ const Topbar = ({ toggleSidebar, isMobile }: TopbarProps) => {
                     No new notifications.
                   </p>
                 ) : (
-                  notificationsList.slice(0, 8).map((notification: any) => (
-                    <button
-                      type="button"
-                      key={notification.id}
-                      onClick={() => {
-                        if (!notification.read) {
-                          markReadMutation.mutate(notification.id);
-                        }
-                      }}
-                      className={`mb-1 w-full rounded-xl px-3 py-3 text-left text-[11px] leading-relaxed transition-colors last:mb-0 ${
-                        notification.read
-                          ? "text-muted-gray hover:bg-neutral-50"
-                          : "bg-brand-teal/6 font-semibold text-charcoal hover:bg-brand-teal/10"
-                      }`}
-                    >
-                      <span className="flex items-start gap-2">
-                        {!notification.read && (
-                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-lime" />
-                        )}
-                        <span>{notification.message}</span>
-                      </span>
-                    </button>
-                  ))
+                  notificationsList.slice(0, 8).map((notification: any) => {
+                    const isRead = notification.read ?? notification.isRead ?? false;
+                    const content = notification.title || notification.message || "New notification";
+                    return (
+                      <button
+                        type="button"
+                        key={notification.id}
+                        onClick={() => {
+                          if (!isRead) {
+                            markReadMutation.mutate(notification.id);
+                          }
+                        }}
+                        className={`mb-1 w-full rounded-xl px-3 py-3 text-left text-[11px] leading-relaxed transition-colors last:mb-0 ${
+                          isRead
+                            ? "text-muted-gray hover:bg-neutral-50"
+                            : "bg-brand-teal/6 font-semibold text-charcoal hover:bg-brand-teal/10"
+                        }`}
+                      >
+                        <span className="flex items-start gap-2">
+                          {!isRead && (
+                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-lime" />
+                          )}
+                          <span className="flex-1">
+                            <span className="block">{content}</span>
+                            {notification.createdAt && (
+                              <span className="mt-0.5 block text-[9px] text-muted-gray font-normal">
+                                {new Date(notification.createdAt).toLocaleDateString(undefined, {
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            )}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })
                 )}
               </div>
             </div>
