@@ -268,7 +268,7 @@ export default function MarketingDashboard() {
 
   const formattedAvgCac = marketingCampaignsData?.avgCostPerLeadKobo
     ? formatNaira(marketingCampaignsData.avgCostPerLeadKobo)
-    : `₦${averageCAC}`;
+    : formatCompactNaira(Number(averageCAC));
 
   const displayTotalSpend = marketingKpisData?.totalSpendKobo
     ? formatNaira(marketingKpisData.totalSpendKobo)
@@ -895,9 +895,9 @@ export default function MarketingDashboard() {
 
               {parseInt(newCampLeads) > 0 && parseFloat(newCampSpend) >= 0 && (
                 <div className="p-3 bg-neutral-50 rounded border border-border-warm text-center font-bold text-brand-teal text-[10px]">
-                  Estimated Cost Per Lead: ₦
-                  {(parseFloat(newCampSpend) / parseInt(newCampLeads)).toFixed(
-                    2,
+                  Estimated Cost Per Lead:{" "}
+                  {formatCompactNaira(
+                    parseFloat(newCampSpend) / parseInt(newCampLeads),
                   )}
                 </div>
               )}

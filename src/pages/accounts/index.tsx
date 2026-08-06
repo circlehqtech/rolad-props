@@ -21,7 +21,6 @@ import {
   LiveMetricBars,
 } from "../../components/LiveCharts";
 import { toast } from "../../utils/toast";
-import { formatCompactNaira, toKoboInt } from "../../shared/money";
 import {
   useAccountsKpis,
   useAccountsCommissions,
@@ -37,7 +36,12 @@ import {
   useUpdateAccountAuditStatusMutation,
 } from "../../shared/hooks/useLiveQueries";
 import { useClientsList } from "../../features/clients/hooks/useClients";
-import { toNaira } from "../../shared/money";
+import {
+  toNaira,
+  formatNaira,
+  formatCompactNaira,
+  toKoboInt,
+} from "../../shared/money";
 import {
   TrendingUp,
   AlertCircle,
@@ -292,7 +296,7 @@ export default function AccountsCenter() {
         : comm.status === "approved"
           ? "Approved"
           : "Pending",
-    details: `Closure Agent: ${comm.closureAgentName || "Unknown"}. Contract value: ₦${toNaira(comm.contractAmountKobo || "0")}`,
+    details: `Closure Agent: ${comm.closureAgentName || "Unknown"}. Contract value: ${formatNaira(comm.contractAmountKobo || "0")}`,
     date: comm.createdAt ? comm.createdAt.split("T")[0] : "2026-07-20",
   }));
 
@@ -302,7 +306,7 @@ export default function AccountsCenter() {
     clientId: roi.clientId,
     clientName: roi.clientName,
     amount: toNaira(roi.roiAmountKobo || "0"),
-    details: `ROI installment payout for ${roi.clientCode || "Investment"}. Contract value: ₦${toNaira(roi.contractAmountKobo || "0")}`,
+    details: `ROI installment payout for ${roi.clientCode || "Investment"}. Contract value: ${formatNaira(roi.contractAmountKobo || "0")}`,
     status: roi.status,
     date: roi.dueDate || "2026-07-21",
   }));
@@ -1202,6 +1206,9 @@ export default function AccountsCenter() {
           title="Outstanding obligation mix"
           description="See where the current finance workload is concentrated before processing settlements."
           centerLabel="Open value"
+          centerDisplayValue={formatCompactNaira(
+            outstandingPayment + outstandingCommission + dueInvestment,
+          )}
           loading={isKpisLoading}
           data={[
             {
@@ -2382,7 +2389,7 @@ export default function AccountsCenter() {
                     Total ROI Payout
                   </p>
                   <p className="text-xs font-bold text-brand-olive mt-0.5">
-                    ₦{toNaira(accountsAuditsData?.totalRoiPayoutKobo || "0")}
+                    {formatNaira(accountsAuditsData?.totalRoiPayoutKobo || "0")}
                   </p>
                 </div>
                 <div className="p-2.5 bg-brand-teal/5 border border-brand-teal/20 rounded">
@@ -2390,8 +2397,7 @@ export default function AccountsCenter() {
                     Commission Release
                   </p>
                   <p className="text-xs font-bold text-brand-teal mt-0.5">
-                    ₦
-                    {toNaira(
+                    {formatNaira(
                       accountsAuditsData?.totalCommissionReleaseKobo || "0",
                     )}
                   </p>
@@ -2401,7 +2407,9 @@ export default function AccountsCenter() {
                     Adjustment
                   </p>
                   <p className="text-xs font-bold text-charcoal mt-0.5">
-                    ₦{toNaira(accountsAuditsData?.totalAdjustmentKobo || "0")}
+                    {formatNaira(
+                      accountsAuditsData?.totalAdjustmentKobo || "0",
+                    )}
                   </p>
                 </div>
               </div>
@@ -2470,7 +2478,7 @@ export default function AccountsCenter() {
                         <span>
                           Amount:{" "}
                           <strong className="text-charcoal font-bold">
-                            ₦{toNaira(audit.amountKobo || "0")}
+                            {formatNaira(audit.amountKobo || "0")}
                           </strong>
                         </span>
                         <span className="font-mono">

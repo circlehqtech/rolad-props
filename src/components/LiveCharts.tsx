@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import FlatIcon from "./FlatIcon";
 import Skeleton from "./Skeleton";
+import { formatCompactNumber } from "../shared/money";
 
 export interface LiveChartDatum {
   label: string;
@@ -126,6 +127,7 @@ export function LiveMetricBars({
 
 interface LiveDonutChartProps extends LiveMetricBarsProps {
   centerLabel: string;
+  centerDisplayValue?: string;
 }
 
 export function LiveDonutChart({
@@ -134,6 +136,7 @@ export function LiveDonutChart({
   description,
   data,
   centerLabel,
+  centerDisplayValue,
   loading = false,
   icon = "chart-pie",
 }: LiveDonutChartProps) {
@@ -150,6 +153,8 @@ export function LiveDonutChart({
     const color = item.color || palette[index % palette.length];
     return `${color} ${start}% ${end}%`;
   });
+
+  const formattedCenter = centerDisplayValue ?? formatCompactNumber(total);
 
   return (
     <ChartShell
@@ -180,9 +185,7 @@ export function LiveDonutChart({
             <div className="absolute inset-5 grid place-items-center rounded-full bg-white text-center shadow-inner">
               <div>
                 <strong className="block text-xl font-extrabold tabular-nums text-slate-900">
-                  {total.toLocaleString(undefined, {
-                    maximumFractionDigits: 0,
-                  })}
+                  {formattedCenter}
                 </strong>
                 <span className="mt-1 block text-[9px] font-bold uppercase tracking-wide text-slate-500">
                   {centerLabel}

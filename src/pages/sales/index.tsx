@@ -23,7 +23,7 @@ import {
   useReleaseSalesPayoutMutation,
   useAccountsRevenue,
 } from "../../shared/hooks/useLiveQueries";
-import { toKoboInt, toNaira, formatCompactNaira } from "../../shared/money";
+import { toKoboInt, toNaira, formatNaira, formatCompactNaira } from "../../shared/money";
 import { formatLabel } from "../../utils/formatters";
 import {
   TrendingUp,
@@ -133,7 +133,7 @@ export default function SalesDashboard() {
     id: c.id,
     clientId: c.clientId,
     clientName: c.clientName || c.clientCode || "Client",
-    details: `Contract: ₦${toNaira(c.contractAmountKobo || "0")} • Code: ${c.clientCode}`,
+    details: `Contract: ${formatNaira(c.contractAmountKobo || "0")} • Code: ${c.clientCode}`,
     amount: toNaira(c.commissionAmountKobo || "0"),
     date: c.createdAt
       ? new Date(c.createdAt).toLocaleDateString()
@@ -328,6 +328,7 @@ export default function SalesDashboard() {
           title="Collected versus awaiting clearance"
           description="A live view of secured sales revenue compared with value still awaiting administrative clearance."
           centerLabel="Revenue value"
+          centerDisplayValue={formatCompactNaira(collectedRevenue + awaitingClearance)}
           loading={isKpisLoading}
           data={[
             {

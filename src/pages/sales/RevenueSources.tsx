@@ -12,7 +12,7 @@ import {
   useAccountRevenue,
   useAccountsRevenue,
 } from "../../shared/hooks/useLiveQueries";
-import { toNaira, formatCompactNaira } from "../../shared/money";
+import { toNaira, formatNaira, formatCompactNaira } from "../../shared/money";
 import {
   LiveChartGrid,
   LiveDonutChart,
@@ -347,6 +347,7 @@ export default function RevenueSources() {
           title="Internal versus external revenue"
           description="Compare company-generated campaign revenue with partner, referral and direct external sources."
           centerLabel="Attributed value"
+          centerDisplayValue={formatCompactNaira(totalRevenue)}
           loading={isAuditsLoading}
           data={[
             {
@@ -493,7 +494,7 @@ export default function RevenueSources() {
                     {/* Revenue Amount */}
                     <td className="px-6 py-4">
                       <span className="font-extrabold text-brand-teal text-sm block">
-                        ₦{toNaira(item.amountKobo)}
+                        {formatNaira(item.amountKobo)}
                       </span>
                     </td>
 
@@ -558,7 +559,7 @@ export default function RevenueSources() {
                   ["Client code", selectedRevenue.clientCode || "—"],
                   [
                     "Amount",
-                    `₦${toNaira(selectedRevenue.amountKobo)}`,
+                    formatNaira(selectedRevenue.amountKobo),
                   ],
                   ["Status", selectedRevenue.status],
                   ["Source type", selectedRevenue.sourceType || "—"],
